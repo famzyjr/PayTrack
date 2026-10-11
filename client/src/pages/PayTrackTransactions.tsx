@@ -2,7 +2,7 @@
 import { ArrowDownToLine, Plus } from "lucide-react";
 import TransactionsTable from "../components/TransactionsTable";
 
-function payTrackTransactions() {
+function PayTrackTransactions() {
   return (
     <div className="space-y-8">
       <section className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
@@ -44,4 +44,4 @@ function payTrackTransactions() {
   );
 }
 
-export default payTrackTransactions;
+export default PayTrackTransactions;

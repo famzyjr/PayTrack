@@ -5,7 +5,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import Sidebar from "./components/Siderbar.tsx";
 import Dashboard from "./pages/Dashboard";
-import payTrackTransactions from "./pages/payTrackTransactions.tsx";
+import PayTrackTransactions from "./pages/PayTrackTransactions";
 
 function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -61,7 +61,7 @@ function AppLayout() {
 
           <Routes>
             <Route path="/" element={<Dashboard />} />
-            <Route path="/transactions" element={<div className="mx-auto max-w-[1500px] p-4 sm:p-6 lg:p-10"><payTrackTransactions/></div>} />
+            <Route path="/transactions" element={<div className="mx-auto max-w-[1500px] p-4 sm:p-6 lg:p-10"><PayTrackTransactions/></div>} />
           </Routes>
         </main>
       </div>
