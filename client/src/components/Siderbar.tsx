@@ -9,6 +9,8 @@ import {
   X,
 } from "lucide-react";
 
+import { NavLink } from "react-router-dom";
+
 interface SidebarProps {
   open: boolean;
   onClose: () => void;
@@ -23,6 +25,7 @@ const navigation = [
 ];
 
 function Sidebar({ open, onClose }: SidebarProps) {
+   
   return (
     <>
       {open && (
@@ -32,7 +35,7 @@ function Sidebar({ open, onClose }: SidebarProps) {
           className="fixed inset-0 z-40 bg-slate-950/30 lg:hidden"
         />
       )}
-
+  
       <aside
         className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-slate-200 bg-white transition-transform duration-200 lg:static lg:z-auto lg:translate-x-0 ${
           open ? "translate-x-0" : "-translate-x-full"
@@ -80,26 +83,35 @@ function Sidebar({ open, onClose }: SidebarProps) {
           <p className="mb-3 px-3 text-xs font-semibold uppercase tracking-widest text-slate-400">
             Menu
           </p>
+            
+{navigation.map(({ label, icon: Icon }) => {
+  const paths: Record<string, string> = {
+    Dashboard: "/",
+    Transactions: "/transactions",
+    "Collection Registers": "/collection-registers",
+    Reports: "/reports",
+    Settings: "/settings",
+  };
 
-          {navigation.map(({ label, icon: Icon }, index) => (
-            <button
-              key={label}
-              onClick={() => {
-                onClose();
-                if (label !== "Dashboard") {
-                  alert(`${label} page will be built in a later step.`);
-                }
-              }}
-              className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition ${
-                index === 0
-                  ? "bg-slate-900 text-white"
-                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-              }`}
-            >
-              <Icon size={19} strokeWidth={1.8} />
-              {label}
-            </button>
-          ))}
+  return (
+    <NavLink
+      key={label}
+      to={paths[label]}
+      onClick={onClose}
+      className={({ isActive }) =>
+        `flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition ${
+          isActive
+            ? "bg-slate-900 text-white"
+            : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+        }`
+      }
+    >
+      <Icon size={19} strokeWidth={1.8} />
+      {label}
+    </NavLink>
+  );
+})}
+
         </nav>
 
         <div className="border-t border-slate-100 p-4">
