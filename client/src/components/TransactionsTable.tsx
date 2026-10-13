@@ -11,7 +11,7 @@ import AddTransactionModal, {
 } from "./AddTransactionModal";
 
 import type {
-  initialTransactions,
+  Transaction,
   TransactionStatus,
 } from "../types/PayTrackTransactions";
 
@@ -19,14 +19,14 @@ type Status = TransactionStatus;
 type StatusFilter = Status | "All";
 
 interface TransactionsTableProps {
-  transactions: initialTransactions[];
+  transactions:  Transaction[];
   onAddTransaction: (values: NewTransactionFormValues) => void;
   isAddModalOpen: boolean;
   onCloseAddModal: () => void;
 }
 
 // Sample transaction data
-const initialTransactions: initialTransactions[] = [
+const initialTransactions:  Transaction[] = [
   {
     id: "1",
     sender: "Ada Okafor",
@@ -131,7 +131,7 @@ function TransactionsTable({
     useState<StatusFilter>("All");
 
   const [transactions, setTransactions] =
-    useState<PayTrackTransactions[]>(initialTransactions);
+    useState< Transaction[]>(initialTransactions);
 
   // Add a new transaction to the beginning of the list
   const handleAddTransaction = (
@@ -139,7 +139,7 @@ function TransactionsTable({
   ) => {
     const sender = values.sender.trim();
 
-    const newTransaction: PayTrackTransactions = {
+    const newTransaction:  Transaction= {
       id: crypto.randomUUID(),
       sender,
       initials: sender
