@@ -1,7 +1,7 @@
  
-import type { PayTrackTransactions } from "../types/PayTrackTransactions";
+import type { Transaction } from "../types/PayTrackTransactions";
 
-export const initialTransactions: PayTrackTransactions[] = [
+export const initialTransactions: Transaction[] = [
   {
     id: "1",
     sender: "Ada Okafor",

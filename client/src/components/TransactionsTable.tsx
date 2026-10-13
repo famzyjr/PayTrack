@@ -11,7 +11,7 @@ import AddTransactionModal, {
 } from "./AddTransactionModal";
 
 import type {
-  PayTrackTransactions,
+  initialTransactions,
   TransactionStatus,
 } from "../types/PayTrackTransactions";
 
@@ -19,14 +19,14 @@ type Status = TransactionStatus;
 type StatusFilter = Status | "All";
 
 interface TransactionsTableProps {
-  transactions: PayTrackTransactions[];
+  transactions: initialTransactions[];
   onAddTransaction: (values: NewTransactionFormValues) => void;
   isAddModalOpen: boolean;
   onCloseAddModal: () => void;
 }
 
 // Sample transaction data
-const initialTransactions: PayTrackTransactions[] = [
+const initialTransactions: initialTransactions[] = [
   {
     id: "1",
     sender: "Ada Okafor",
