@@ -7,6 +7,7 @@ import Sidebar from "./components/Siderbar";
 import Dashboard from "./pages/Dashboard";
 import PayTrackTransactions from "./pages/PayTrackTransactions";
 import { initialTransactions } from "./data/PayTrackTransactions";
+
 import type { Transaction } from "./types/PayTrackTransactions";
 import type { NewTransactionFormValues } from "./components/AddTransactionModal";
 
@@ -20,33 +21,40 @@ function AppLayout() {
 
   // Add a new transaction
   const handleAddTransaction = (
-    values: NewTransactionFormValues,
+    values: NewTransactionFormValues
   ) => {
     const sender = values.sender.trim();
 
     const newTransaction: Transaction = {
       id: crypto.randomUUID(),
+
       sender,
+
       initials: sender
         .split(/\s+/)
         .map((name) => name[0])
         .join("")
         .slice(0, 2)
         .toUpperCase(),
+
       reference: values.reference.trim(),
+
       date: new Date(
-        `${values.date}T12:00:00`,
+        `${values.date}T12:00:00`
       ).toLocaleDateString("en-US", {
         month: "short",
         day: "2-digit",
         year: "numeric",
       }),
+
       amount: Number(values.amount),
+
       status: values.status,
+
       remarks: "",
     };
 
-    // Save the new transaction in shared state
+    // Add the new transaction to shared state
     setTransactions((previousTransactions) => [
       newTransaction,
       ...previousTransactions,
@@ -58,19 +66,24 @@ function AppLayout() {
   // Save or update remarks on an existing transaction
   const handleSaveRemarks = (
     id: string,
-    remarks: string,
+    remarks: string
   ) => {
     setTransactions((previousTransactions) =>
       previousTransactions.map((transaction) =>
         transaction.id === id
           ? { ...transaction, remarks }
-          : transaction,
-      ),
+          : transaction
+      )
     );
   };
 
-  const closeAddModal = () => setIsAddModalOpen(false);
-  const openAddModal = () => setIsAddModalOpen(true);
+  const closeAddModal = () => {
+    setIsAddModalOpen(false);
+  };
+
+  const openAddModal = () => {
+    setIsAddModalOpen(true);
+  };
 
   return (
     <div className="min-h-screen bg-[#F8F9FB] text-slate-900">
@@ -122,16 +135,21 @@ function AppLayout() {
                 className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2.5 text-sm font-medium text-white hover:bg-slate-800 sm:px-4"
               >
                 <Plus size={17} />
+
                 <span className="hidden sm:inline">
                   Add transaction
                 </span>
-                <span className="sm:hidden">Add</span>
+
+                <span className="sm:hidden">
+                  Add
+                </span>
               </button>
             </div>
           </header>
 
           {/* Application routes */}
           <Routes>
+            {/* Dashboard */}
             <Route
               path="/"
               element={
@@ -141,11 +159,11 @@ function AppLayout() {
                   onSaveRemarks={handleSaveRemarks}
                   isAddModalOpen={isAddModalOpen}
                   onCloseAddModal={closeAddModal}
-                  onOpenAddModal={openAddModal}
                 />
               }
             />
 
+            {/* All transactions */}
             <Route
               path="/transactions"
               element={
@@ -170,6 +188,7 @@ function AppLayout() {
                   <h1 className="text-2xl font-semibold">
                     Page not found
                   </h1>
+
                   <p className="mt-2 text-sm text-slate-500">
                     The page you are looking for does not exist.
                   </p>

@@ -11,19 +11,28 @@ import StatCard from "../components/StatCard";
 import TransactionsTable from "../components/TransactionsTable";
 
 import type { Transaction } from "../types/PayTrackTransactions";
-import type { NewTransactionFormValues } from "../components/AddTransactionModal";
 
 interface DashboardProps {
   transactions: Transaction[];
-  onAddTransaction: (values: NewTransactionFormValues) => void;
+
+  onAddTransaction: (values: {
+    sender: string;
+    reference: string;
+    amount: string;
+    date: string;
+    status: "Confirmed" | "Pending" | "Needs review";
+  }) => void;
+
+  onSaveRemarks: (id: string, remarks: string) => void;
+
   isAddModalOpen: boolean;
   onCloseAddModal: () => void;
-  onOpenAddModal: () => void;
 }
 
 function Dashboard({
   transactions,
   onAddTransaction,
+  onSaveRemarks,
   isAddModalOpen,
   onCloseAddModal,
 }: DashboardProps) {
@@ -137,6 +146,7 @@ function Dashboard({
         <TransactionsTable
           transactions={transactions}
           onAddTransaction={onAddTransaction}
+          onSaveRemarks={onSaveRemarks}
           isAddModalOpen={isAddModalOpen}
           onCloseAddModal={onCloseAddModal}
         />

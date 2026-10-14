@@ -8,7 +8,11 @@ import type { NewTransactionFormValues } from "../components/AddTransactionModal
 
 interface PayTrackTransactionsProps {
   transactions: Transaction[];
+
   onAddTransaction: (values: NewTransactionFormValues) => void;
+
+  onSaveRemarks: (id: string, remarks: string) => void;
+
   isAddModalOpen: boolean;
   onOpenAddModal: () => void;
   onCloseAddModal: () => void;
@@ -17,6 +21,7 @@ interface PayTrackTransactionsProps {
 function PayTrackTransactions({
   transactions,
   onAddTransaction,
+  onSaveRemarks,
   isAddModalOpen,
   onOpenAddModal,
   onCloseAddModal,
@@ -64,6 +69,7 @@ function PayTrackTransactions({
       <TransactionsTable
         transactions={transactions}
         onAddTransaction={onAddTransaction}
+        onSaveRemarks={onSaveRemarks}
         isAddModalOpen={isAddModalOpen}
         onCloseAddModal={onCloseAddModal}
       />
