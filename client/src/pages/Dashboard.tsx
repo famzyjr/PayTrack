@@ -9,21 +9,21 @@ import {
 
 import StatCard from "../components/StatCard";
 import TransactionsTable from "../components/TransactionsTable";
+import type { NewTransactionFormValues } from "../components/AddTransactionModal";
 
-import type { Transaction } from "../types/PayTrackTransactions";
+import type {
+  Transaction,
+  TransactionStatus,
+} from "../types/PayTrackTransactions";
 
 interface DashboardProps {
   transactions: Transaction[];
 
-  onAddTransaction: (values: {
-    sender: string;
-    reference: string;
-    amount: string;
-    date: string;
-    status: "Confirmed" | "Pending" | "Needs review";
-  }) => void;
+  onAddTransaction: (values: NewTransactionFormValues) => void;
 
   onSaveRemarks: (id: string, remarks: string) => void;
+
+  onUpdateStatus: (id: string, status: TransactionStatus) => void;
 
   isAddModalOpen: boolean;
   onCloseAddModal: () => void;
@@ -33,6 +33,7 @@ function Dashboard({
   transactions,
   onAddTransaction,
   onSaveRemarks,
+  onUpdateStatus,
   isAddModalOpen,
   onCloseAddModal,
 }: DashboardProps) {
@@ -45,15 +46,15 @@ function Dashboard({
 
   // Calculate transaction counts.
   const confirmedCount = transactions.filter(
-    (transaction) => transaction.status === "Confirmed"
+    (transaction) => transaction.status === "Confirmed",
   ).length;
 
   const pendingCount = transactions.filter(
-    (transaction) => transaction.status === "Pending"
+    (transaction) => transaction.status === "Pending",
   ).length;
 
   const reviewCount = transactions.filter(
-    (transaction) => transaction.status === "Needs review"
+    (transaction) => transaction.status === "Needs review",
   ).length;
 
   // Format amounts in Nigerian Naira.
@@ -147,6 +148,7 @@ function Dashboard({
           transactions={transactions}
           onAddTransaction={onAddTransaction}
           onSaveRemarks={onSaveRemarks}
+          onUpdateStatus={onUpdateStatus}
           isAddModalOpen={isAddModalOpen}
           onCloseAddModal={onCloseAddModal}
         />

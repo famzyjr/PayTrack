@@ -3,7 +3,11 @@ import { ArrowDownToLine, Plus } from "lucide-react";
 
 import TransactionsTable from "../components/TransactionsTable";
 
-import type { Transaction } from "../types/PayTrackTransactions";
+import type {
+  Transaction,
+  TransactionStatus,
+} from "../types/PayTrackTransactions";
+
 import type { NewTransactionFormValues } from "../components/AddTransactionModal";
 
 interface PayTrackTransactionsProps {
@@ -12,6 +16,8 @@ interface PayTrackTransactionsProps {
   onAddTransaction: (values: NewTransactionFormValues) => void;
 
   onSaveRemarks: (id: string, remarks: string) => void;
+
+  onUpdateStatus: (id: string, status: TransactionStatus) => void;
 
   isAddModalOpen: boolean;
   onOpenAddModal: () => void;
@@ -22,6 +28,7 @@ function PayTrackTransactions({
   transactions,
   onAddTransaction,
   onSaveRemarks,
+  onUpdateStatus,
   isAddModalOpen,
   onOpenAddModal,
   onCloseAddModal,
@@ -70,6 +77,7 @@ function PayTrackTransactions({
         transactions={transactions}
         onAddTransaction={onAddTransaction}
         onSaveRemarks={onSaveRemarks}
+        onUpdateStatus={onUpdateStatus}
         isAddModalOpen={isAddModalOpen}
         onCloseAddModal={onCloseAddModal}
       />

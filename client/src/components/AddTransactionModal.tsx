@@ -5,18 +5,34 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { X } from "lucide-react";
 
 const transactionSchema = z.object({
-  sender: z.string().trim().min(2, "Sender name must be at least 2 characters"),
-  reference: z.string().trim().min(3, "Enter a valid transaction reference"),
+  sender: z
+    .string()
+    .trim()
+    .min(2, "Sender name must be at least 2 characters"),
+
+  reference: z
+    .string()
+    .trim()
+    .min(3, "Enter a valid transaction reference"),
+
   amount: z
     .string()
     .trim()
     .min(1, "Amount is required")
     .refine(
-      (value) => /^\d+(\.\d{1,2})?$/.test(value) && Number(value) > 0,
+      (value) =>
+        /^\d+(\.\d{1,2})?$/.test(value) && Number(value) > 0,
       "Enter a valid amount greater than zero",
     ),
+
   date: z.string().min(1, "Transaction date is required"),
+
   status: z.enum(["Confirmed", "Pending", "Needs review"]),
+
+  remarks: z
+    .string()
+    .trim()
+    .max(500, "Remarks cannot exceed 500 characters"),
 });
 
 export type NewTransactionFormValues = z.infer<
@@ -45,6 +61,7 @@ function AddTransactionModal({
       amount: "",
       date: new Date().toISOString().slice(0, 10),
       status: "Pending",
+      remarks: "",
     },
   });
 
@@ -72,7 +89,7 @@ function AddTransactionModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="add-transaction-title"
-        className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-xl"
+        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white shadow-xl"
       >
         <div className="flex items-center justify-between border-b border-slate-100 p-5">
           <div>
@@ -183,6 +200,30 @@ function AddTransactionModal({
               <option value="Confirmed">Confirmed</option>
               <option value="Needs review">Needs review</option>
             </select>
+          </div>
+
+          <div>
+            <label htmlFor="remarks" className={labelClass}>
+              Remarks / Payment description
+              <span className="ml-1 font-normal text-slate-400">
+                (optional)
+              </span>
+            </label>
+            <textarea
+              id="remarks"
+              {...register("remarks")}
+              rows={3}
+              maxLength={500}
+              placeholder="e.g. October textbook payment"
+              className={`${inputClass} resize-y`}
+              aria-invalid={Boolean(errors.remarks)}
+            />
+            {errors.remarks && (
+              <p className={errorClass}>{errors.remarks.message}</p>
+            )}
+            <p className="mt-1 text-xs text-slate-400">
+              Add a note to help identify what the payment is for.
+            </p>
           </div>
 
           <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:justify-end">

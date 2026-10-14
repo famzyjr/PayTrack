@@ -8,7 +8,11 @@ import Dashboard from "./pages/Dashboard";
 import PayTrackTransactions from "./pages/PayTrackTransactions";
 import { initialTransactions } from "./data/PayTrackTransactions";
 
-import type { Transaction } from "./types/PayTrackTransactions";
+import type {
+  Transaction,
+  TransactionStatus,
+} from "./types/PayTrackTransactions";
+
 import type { NewTransactionFormValues } from "./components/AddTransactionModal";
 
 function AppLayout() {
@@ -21,7 +25,7 @@ function AppLayout() {
 
   // Add a new transaction
   const handleAddTransaction = (
-    values: NewTransactionFormValues
+    values: NewTransactionFormValues,
   ) => {
     const sender = values.sender.trim();
 
@@ -40,7 +44,7 @@ function AppLayout() {
       reference: values.reference.trim(),
 
       date: new Date(
-        `${values.date}T12:00:00`
+        `${values.date}T12:00:00`,
       ).toLocaleDateString("en-US", {
         month: "short",
         day: "2-digit",
@@ -51,10 +55,9 @@ function AppLayout() {
 
       status: values.status,
 
-      remarks: "",
+      remarks: values.remarks.trim(),
     };
 
-    // Add the new transaction to shared state
     setTransactions((previousTransactions) => [
       newTransaction,
       ...previousTransactions,
@@ -63,17 +66,31 @@ function AppLayout() {
     setIsAddModalOpen(false);
   };
 
-  // Save or update remarks on an existing transaction
+  // Save or update remarks
   const handleSaveRemarks = (
     id: string,
-    remarks: string
+    remarks: string,
   ) => {
     setTransactions((previousTransactions) =>
       previousTransactions.map((transaction) =>
         transaction.id === id
           ? { ...transaction, remarks }
-          : transaction
-      )
+          : transaction,
+      ),
+    );
+  };
+
+  // Update a transaction's status
+  const handleUpdateStatus = (
+    id: string,
+    status: TransactionStatus,
+  ) => {
+    setTransactions((previousTransactions) =>
+      previousTransactions.map((transaction) =>
+        transaction.id === id
+          ? { ...transaction, status }
+          : transaction,
+      ),
     );
   };
 
@@ -140,9 +157,7 @@ function AppLayout() {
                   Add transaction
                 </span>
 
-                <span className="sm:hidden">
-                  Add
-                </span>
+                <span className="sm:hidden">Add</span>
               </button>
             </div>
           </header>
@@ -157,6 +172,7 @@ function AppLayout() {
                   transactions={transactions}
                   onAddTransaction={handleAddTransaction}
                   onSaveRemarks={handleSaveRemarks}
+                  onUpdateStatus={handleUpdateStatus}
                   isAddModalOpen={isAddModalOpen}
                   onCloseAddModal={closeAddModal}
                 />
@@ -172,6 +188,7 @@ function AppLayout() {
                     transactions={transactions}
                     onAddTransaction={handleAddTransaction}
                     onSaveRemarks={handleSaveRemarks}
+                    onUpdateStatus={handleUpdateStatus}
                     isAddModalOpen={isAddModalOpen}
                     onOpenAddModal={openAddModal}
                     onCloseAddModal={closeAddModal}

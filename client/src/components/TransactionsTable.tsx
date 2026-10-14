@@ -29,6 +29,7 @@ interface TransactionsTableProps {
   transactions: Transaction[];
   onAddTransaction: (values: NewTransactionFormValues) => void;
   onSaveRemarks: (id: string, remarks: string) => void;
+  onUpdateStatus: (id: string, status: TransactionStatus) => void;
   isAddModalOpen: boolean;
   onCloseAddModal: () => void;
 }
@@ -84,6 +85,7 @@ function TransactionsTable({
   transactions,
   onAddTransaction,
   onSaveRemarks,
+  onUpdateStatus,
   isAddModalOpen,
   onCloseAddModal,
 }: TransactionsTableProps) {
@@ -91,8 +93,7 @@ function TransactionsTable({
   const [statusFilter, setStatusFilter] =
     useState<StatusFilter>("All");
 
-  // Store the selected ID so the modal always receives
-  // the latest transaction, including updated remarks.
+  // Store the ID so the modal receives the latest transaction.
   const [selectedTransactionId, setSelectedTransactionId] =
     useState<string | null>(null);
 
@@ -180,7 +181,7 @@ function TransactionsTable({
     ? []
     : filteredTransactions;
 
-  // Export the currently filtered transactions to PDF.
+  // Export currently filtered transactions to PDF.
   const handleExportPDF = () => {
     if (displayedTransactions.length === 0) return;
 
@@ -530,12 +531,13 @@ function TransactionsTable({
         />
       )}
 
-      {/* Transaction details and remarks modal */}
+      {/* Transaction details, remarks, and status modal */}
       {selectedTransaction && (
         <TransactionDetailsModal
           transaction={selectedTransaction}
           onClose={() => setSelectedTransactionId(null)}
           onSaveRemarks={onSaveRemarks}
+          onUpdateStatus={onUpdateStatus}
         />
       )}
     </section>
