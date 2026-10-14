@@ -12,4 +12,5 @@ export interface Transaction {
   date: string;
   amount: number;
   status: TransactionStatus;
+  remarks: string;
 }

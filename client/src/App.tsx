@@ -14,12 +14,14 @@ function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
-  // Shared transaction state for the dashboard and transactions page
+  // Shared transaction state for both pages
   const [transactions, setTransactions] =
     useState<Transaction[]>(initialTransactions);
 
-  // Add a new transaction to the shared list
-  const handleAddTransaction = (values: NewTransactionFormValues) => {
+  // Add a new transaction
+  const handleAddTransaction = (
+    values: NewTransactionFormValues,
+  ) => {
     const sender = values.sender.trim();
 
     const newTransaction: Transaction = {
@@ -32,24 +34,39 @@ function AppLayout() {
         .slice(0, 2)
         .toUpperCase(),
       reference: values.reference.trim(),
-      date: new Date(`${values.date}T12:00:00`).toLocaleDateString(
-        "en-US",
-        {
-          month: "short",
-          day: "2-digit",
-          year: "numeric",
-        }
-      ),
+      date: new Date(
+        `${values.date}T12:00:00`,
+      ).toLocaleDateString("en-US", {
+        month: "short",
+        day: "2-digit",
+        year: "numeric",
+      }),
       amount: Number(values.amount),
       status: values.status,
+      remarks: "",
     };
 
+    // Save the new transaction in shared state
     setTransactions((previousTransactions) => [
       newTransaction,
       ...previousTransactions,
     ]);
 
     setIsAddModalOpen(false);
+  };
+
+  // Save or update remarks on an existing transaction
+  const handleSaveRemarks = (
+    id: string,
+    remarks: string,
+  ) => {
+    setTransactions((previousTransactions) =>
+      previousTransactions.map((transaction) =>
+        transaction.id === id
+          ? { ...transaction, remarks }
+          : transaction,
+      ),
+    );
   };
 
   const closeAddModal = () => setIsAddModalOpen(false);
@@ -121,6 +138,7 @@ function AppLayout() {
                 <Dashboard
                   transactions={transactions}
                   onAddTransaction={handleAddTransaction}
+                  onSaveRemarks={handleSaveRemarks}
                   isAddModalOpen={isAddModalOpen}
                   onCloseAddModal={closeAddModal}
                   onOpenAddModal={openAddModal}
@@ -135,6 +153,7 @@ function AppLayout() {
                   <PayTrackTransactions
                     transactions={transactions}
                     onAddTransaction={handleAddTransaction}
+                    onSaveRemarks={handleSaveRemarks}
                     isAddModalOpen={isAddModalOpen}
                     onOpenAddModal={openAddModal}
                     onCloseAddModal={closeAddModal}

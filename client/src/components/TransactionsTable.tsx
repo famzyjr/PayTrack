@@ -1,86 +1,44 @@
 
-
-import { ArrowUpRight, Search, RotateCcw } from "lucide-react";
+import {
+  ArrowUpRight,
+  Search,
+  RotateCcw,
+  Download,
+  Eye,
+} from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 import AddTransactionModal, {
   type NewTransactionFormValues,
 } from "./AddTransactionModal";
+import TransactionDetailsModal from "./TransactionDetailsModal";
 
 import type {
   Transaction,
   TransactionStatus,
 } from "../types/PayTrackTransactions";
 
-type Status = TransactionStatus;
-type StatusFilter = Status | "All";
+type StatusFilter = TransactionStatus | "All";
 
 interface TransactionsTableProps {
-  transactions:  Transaction[];
+  transactions: Transaction[];
   onAddTransaction: (values: NewTransactionFormValues) => void;
+  onSaveRemarks: (id: string, remarks: string) => void;
   isAddModalOpen: boolean;
   onCloseAddModal: () => void;
 }
 
-// Sample transaction data
-const initialTransactions:  Transaction[] = [
-  {
-    id: "1",
-    sender: "Ada Okafor",
-    initials: "AO",
-    reference: "PAY-483920",
-    date: "Oct 11, 2026",
-    amount: 125000,
-    status: "Confirmed",
-  },
-  {
-    id: "2",
-    sender: "John Bello",
-    initials: "JB",
-    reference: "PAY-483944",
-    date: "Oct 11, 2026",
-    amount: 42000,
-    status: "Pending",
-  },
-  {
-    id: "3",
-    sender: "Musa Ibrahim",
-    initials: "MI",
-    reference: "PAY-484011",
-    date: "Oct 10, 2026",
-    amount: 80000,
-    status: "Confirmed",
-  },
-  {
-    id: "4",
-    sender: "Grace Eze",
-    initials: "GE",
-    reference: "PAY-484087",
-    date: "Oct 10, 2026",
-    amount: 55000,
-    status: "Needs review",
-  },
-  {
-    id: "5",
-    sender: "Tunde Adebayo",
-    initials: "TA",
-    reference: "PAY-484120",
-    date: "Oct 09, 2026",
-    amount: 180000,
-    status: "Confirmed",
-  },
-];
-
-const statusStyles: Record<Status, string> = {
+const statusStyles: Record<TransactionStatus, string> = {
   Confirmed: "bg-emerald-50 text-emerald-700",
   Pending: "bg-amber-50 text-amber-700",
   "Needs review": "bg-rose-50 text-rose-700",
 };
 
-// Validation schema for date and amount filters
 const filterSchema = z
   .object({
     startDate: z.string(),
@@ -123,6 +81,9 @@ const filterSchema = z
 type FilterFormValues = z.infer<typeof filterSchema>;
 
 function TransactionsTable({
+  transactions,
+  onAddTransaction,
+  onSaveRemarks,
   isAddModalOpen,
   onCloseAddModal,
 }: TransactionsTableProps) {
@@ -130,41 +91,10 @@ function TransactionsTable({
   const [statusFilter, setStatusFilter] =
     useState<StatusFilter>("All");
 
-  const [transactions, setTransactions] =
-    useState< Transaction[]>(initialTransactions);
-
-  // Add a new transaction to the beginning of the list
-  const handleAddTransaction = (
-    values: NewTransactionFormValues,
-  ) => {
-    const sender = values.sender.trim();
-
-    const newTransaction:  Transaction= {
-      id: crypto.randomUUID(),
-      sender,
-      initials: sender
-        .split(/\s+/)
-        .map((name) => name[0])
-        .join("")
-        .slice(0, 2)
-        .toUpperCase(),
-      reference: values.reference.trim(),
-      date: new Date(
-        `${values.date}T12:00:00`,
-      ).toLocaleDateString("en-US", {
-        month: "short",
-        day: "2-digit",
-        year: "numeric",
-      }),
-      amount: Number(values.amount),
-      status: values.status,
-    };
-
-    setTransactions((previousTransactions) => [
-      newTransaction,
-      ...previousTransactions,
-    ]);
-  };
+  // Store the selected ID so the modal always receives
+  // the latest transaction, including updated remarks.
+  const [selectedTransactionId, setSelectedTransactionId] =
+    useState<string | null>(null);
 
   const {
     register,
@@ -187,20 +117,23 @@ function TransactionsTable({
   const minAmount = watch("minAmount");
   const maxAmount = watch("maxAmount");
 
-  // Reset all filters
+  const selectedTransaction = transactions.find(
+    (transaction) => transaction.id === selectedTransactionId,
+  );
+
   const resetFilters = () => {
     setSearch("");
     setStatusFilter("All");
     reset();
   };
 
-  // Apply all filters to the current transaction state
   const filteredTransactions = transactions.filter((transaction) => {
     const normalizedSearch = search.toLowerCase().trim();
 
     const matchesSearch = [
       transaction.sender,
       transaction.reference,
+      transaction.remarks ?? "",
     ].some((value) =>
       value.toLowerCase().includes(normalizedSearch),
     );
@@ -237,7 +170,6 @@ function TransactionsTable({
     );
   });
 
-  // Do not display results when filter values are invalid
   const hasInvalidRange =
     Boolean(errors.startDate) ||
     Boolean(errors.endDate) ||
@@ -248,6 +180,70 @@ function TransactionsTable({
     ? []
     : filteredTransactions;
 
+  // Export the currently filtered transactions to PDF.
+  const handleExportPDF = () => {
+    if (displayedTransactions.length === 0) return;
+
+    const doc = new jsPDF({
+      orientation: "landscape",
+      unit: "mm",
+      format: "a4",
+    });
+
+    doc.setFontSize(18);
+    doc.text("PayTrack Transaction Report", 14, 18);
+
+    doc.setFontSize(10);
+    doc.text(
+      `Generated: ${new Date().toLocaleDateString("en-NG")}`,
+      14,
+      25,
+    );
+    doc.text(
+      `Total records: ${displayedTransactions.length}`,
+      14,
+      31,
+    );
+
+    autoTable(doc, {
+      startY: 38,
+      head: [[
+        "Sender",
+        "Reference",
+        "Date",
+        "Amount (NGN)",
+        "Status",
+        "Remarks",
+      ]],
+      body: displayedTransactions.map((transaction) => [
+        transaction.sender,
+        transaction.reference,
+        transaction.date,
+        transaction.amount.toLocaleString("en-NG"),
+        transaction.status,
+        transaction.remarks?.trim() || "No remarks",
+      ]),
+      theme: "grid",
+      styles: {
+        fontSize: 8,
+        cellPadding: 3,
+        overflow: "linebreak",
+      },
+      headStyles: {
+        fillColor: [5, 150, 105],
+      },
+      columnStyles: {
+        5: { cellWidth: 65 },
+      },
+      margin: {
+        left: 14,
+        right: 14,
+      },
+    });
+
+    doc.save("paytrack-transaction-report.pdf");
+  };
+
   return (
     <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
       {/* Table heading */}
@@ -256,7 +252,6 @@ function TransactionsTable({
           <h2 className="font-semibold text-slate-900">
             Recent transactions
           </h2>
-
           <p className="mt-1 text-sm text-slate-500">
             Review your latest incoming payments.
           </p>
@@ -264,9 +259,7 @@ function TransactionsTable({
 
         <button
           type="button"
-          onClick={() =>
-            window.location.assign("/transactions")
-          }
+          onClick={() => window.location.assign("/transactions")}
           className="inline-flex items-center justify-center gap-2 text-sm font-semibold text-slate-700 transition hover:text-emerald-700"
         >
           View all <ArrowUpRight size={16} />
@@ -280,11 +273,10 @@ function TransactionsTable({
             size={17}
             className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
           />
-
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search sender or reference..."
+            placeholder="Search sender, reference or remarks..."
             aria-label="Search transactions"
             className="w-full rounded-xl border border-slate-200 py-2.5 pl-10 pr-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/10"
           />
@@ -315,7 +307,6 @@ function TransactionsTable({
             >
               From date
             </label>
-
             <input
               id="start-date"
               type="date"
@@ -323,7 +314,6 @@ function TransactionsTable({
               {...register("startDate")}
               className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/10"
             />
-
             {errors.startDate && (
               <p className="mt-1 text-xs text-rose-600">
                 {errors.startDate.message}
@@ -338,7 +328,6 @@ function TransactionsTable({
             >
               To date
             </label>
-
             <input
               id="end-date"
               type="date"
@@ -346,7 +335,6 @@ function TransactionsTable({
               {...register("endDate")}
               className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/10"
             />
-
             {errors.endDate && (
               <p className="mt-1 text-xs text-rose-600">
                 {errors.endDate.message}
@@ -361,7 +349,6 @@ function TransactionsTable({
             >
               Minimum amount (₦)
             </label>
-
             <input
               id="min-amount"
               type="text"
@@ -370,7 +357,6 @@ function TransactionsTable({
               {...register("minAmount")}
               className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/10"
             />
-
             {errors.minAmount && (
               <p className="mt-1 text-xs text-rose-600">
                 {errors.minAmount.message}
@@ -385,7 +371,6 @@ function TransactionsTable({
             >
               Maximum amount (₦)
             </label>
-
             <input
               id="max-amount"
               type="text"
@@ -394,7 +379,6 @@ function TransactionsTable({
               {...register("maxAmount")}
               className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/10"
             />
-
             {errors.maxAmount && (
               <p className="mt-1 text-xs text-rose-600">
                 {errors.maxAmount.message}
@@ -408,20 +392,32 @@ function TransactionsTable({
             Combine filters to narrow down your transactions.
           </p>
 
-          <button
-            type="button"
-            onClick={resetFilters}
-            className="inline-flex items-center justify-center gap-2 self-start rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 sm:self-auto"
-          >
-            <RotateCcw size={16} />
-            Reset filters
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
+            >
+              <RotateCcw size={16} />
+              Reset filters
+            </button>
+
+            <button
+              type="button"
+              onClick={handleExportPDF}
+              disabled={displayedTransactions.length === 0}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Download size={16} />
+              Export PDF
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Transactions table */}
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[760px] text-left">
+        <table className="w-full min-w-[1100px] text-left">
           <thead>
             <tr className="bg-slate-50/70 text-xs font-medium uppercase tracking-wider text-slate-500">
               <th className="px-5 py-4">Sender</th>
@@ -429,6 +425,8 @@ function TransactionsTable({
               <th className="px-5 py-4">Date</th>
               <th className="px-5 py-4">Amount</th>
               <th className="px-5 py-4">Status</th>
+              <th className="px-5 py-4">Remarks</th>
+              <th className="px-5 py-4">Actions</th>
             </tr>
           </thead>
 
@@ -443,7 +441,6 @@ function TransactionsTable({
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-600">
                       {transaction.initials}
                     </div>
-
                     <span className="text-sm font-medium text-slate-800">
                       {transaction.sender}
                     </span>
@@ -473,13 +470,41 @@ function TransactionsTable({
                     {transaction.status}
                   </span>
                 </td>
+
+                <td className="max-w-[240px] px-5 py-4">
+                  {transaction.remarks?.trim() ? (
+                    <p
+                      className="max-w-[220px] truncate text-sm text-slate-600"
+                      title={transaction.remarks}
+                    >
+                      {transaction.remarks}
+                    </p>
+                  ) : (
+                    <span className="text-sm text-slate-400">
+                      No remarks
+                    </span>
+                  )}
+                </td>
+
+                <td className="px-5 py-4">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setSelectedTransactionId(transaction.id)
+                    }
+                    className="inline-flex items-center gap-1.5 whitespace-nowrap text-sm font-semibold text-emerald-700 transition hover:text-emerald-800"
+                  >
+                    <Eye size={15} />
+                    View details
+                  </button>
+                </td>
               </tr>
             ))}
 
             {displayedTransactions.length === 0 && (
               <tr>
                 <td
-                  colSpan={5}
+                  colSpan={7}
                   className="px-5 py-12 text-center text-sm text-slate-500"
                 >
                   {hasInvalidRange
@@ -501,7 +526,16 @@ function TransactionsTable({
       {isAddModalOpen && (
         <AddTransactionModal
           onClose={onCloseAddModal}
-          onAddTransaction={handleAddTransaction}
+          onAddTransaction={onAddTransaction}
+        />
+      )}
+
+      {/* Transaction details and remarks modal */}
+      {selectedTransaction && (
+        <TransactionDetailsModal
+          transaction={selectedTransaction}
+          onClose={() => setSelectedTransactionId(null)}
+          onSaveRemarks={onSaveRemarks}
         />
       )}
     </section>

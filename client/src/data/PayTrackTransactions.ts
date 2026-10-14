@@ -10,6 +10,7 @@ export const initialTransactions: Transaction[] = [
     date: "Oct 11, 2026",
     amount: 125000,
     status: "Confirmed",
+    remarks: ""
   },
   {
     id: "2",
@@ -19,6 +20,7 @@ export const initialTransactions: Transaction[] = [
     date: "Oct 11, 2026",
     amount: 42000,
     status: "Pending",
+    remarks: ""
   },
   {
     id: "3",
@@ -28,6 +30,7 @@ export const initialTransactions: Transaction[] = [
     date: "Oct 10, 2026",
     amount: 80000,
     status: "Confirmed",
+    remarks: ""
   },
   {
     id: "4",
@@ -37,6 +40,7 @@ export const initialTransactions: Transaction[] = [
     date: "Oct 10, 2026",
     amount: 55000,
     status: "Needs review",
+    remarks: ""
   },
   {
     id: "5",
@@ -46,6 +50,7 @@ export const initialTransactions: Transaction[] = [
     date: "Oct 09, 2026",
     amount: 180000,
     status: "Confirmed",
+    remarks: ""
   },
    {
     id: "6",
@@ -55,5 +60,6 @@ export const initialTransactions: Transaction[] = [
     date: "Oct 09, 2026",
     amount: 1850000,
     status: "Confirmed",
+    remarks: ""
   },
 ];
