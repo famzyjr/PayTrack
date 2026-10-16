@@ -6,6 +6,7 @@ import User from "../models/User";
 
 const router = Router();
 
+// Registration request validation
 const registerSchema = z.object({
   name: z
     .string()
@@ -17,7 +18,7 @@ const registerSchema = z.object({
     .string()
     .trim()
     .email("Please provide a valid email address")
-    .max(254)
+    .max(254, "Email cannot exceed 254 characters")
     .transform((email) => email.toLowerCase()),
 
   password: z
@@ -26,22 +27,32 @@ const registerSchema = z.object({
     .max(72, "Password is too long"),
 });
 
+// POST /api/auth/register
 router.post(
   "/register",
   async (req: Request, res: Response): Promise<void> => {
     try {
-      // 1. Validate the incoming data.
+      // 1. Validate incoming request data.
       const result = registerSchema.safeParse(req.body);
 
       if (!result.success) {
+        const errors = result.error.issues.map((issue) => ({
+          field: issue.path.join("."),
+          message: issue.message,
+        }));
+
+        console.log("Registration validation errors:", errors);
+
         res.status(400).json({
           success: false,
           message: "Please check your registration details",
-          errors: result.error.flatten().fieldErrors,
+          errors,
         });
+
         return;
       }
 
+      // Use validated and normalized data.
       const { name, email, password } = result.data;
 
       // 2. Check whether the email is already registered.
@@ -52,20 +63,22 @@ router.post(
           success: false,
           message: "An account with this email already exists",
         });
+
         return;
       }
 
-      // 3. Hash the password before storing it.
+      // 3. Hash the password before saving it.
       const passwordHash = await bcrypt.hash(password, 12);
 
-      // 4. Create the user document in MongoDB.
+      // 4. Create the user in MongoDB.
       const user = await User.create({
         name,
         email,
         passwordHash,
       });
 
-      // 5. Return safe account information only.
+      // 5. Return safe user information.
+      // Never return the original password or password hash.
       res.status(201).json({
         success: true,
         message: "Account created successfully",
@@ -77,7 +90,7 @@ router.post(
         },
       });
     } catch (error: unknown) {
-      // Handle a duplicate email if two requests arrive together.
+      // Handle duplicate email index errors from MongoDB.
       if (
         typeof error === "object" &&
         error !== null &&
@@ -88,9 +101,11 @@ router.post(
           success: false,
           message: "An account with this email already exists",
         });
+
         return;
       }
 
+      // Log the actual error on the server for debugging.
       console.error("Registration error:", error);
 
       res.status(500).json({
