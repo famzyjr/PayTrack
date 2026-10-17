@@ -1,8 +1,8 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Bell, Menu, Plus } from "lucide-react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-
+import { apiRequest } from "./services/api";
 import Sidebar from "./components/Siderbar";
 import Dashboard from "./pages/Dashboard";
 import PayTrackTransactions from "./pages/PayTrackTransactions";
@@ -102,6 +102,21 @@ function AppLayout() {
     setIsAddModalOpen(true);
   };
 
+  const [apiStatus, setApiStatus] = useState<
+    "checking" | "connected" | "error"
+  >("checking");
+
+  useEffect(() => {
+    apiRequest<{ success: boolean; message: string }>("/health")
+      .then(() => {
+        setApiStatus("connected");
+      })
+      .catch((error: unknown) => {
+        console.error("PayTrack API connection failed:", error);
+        setApiStatus("error");
+      });
+  }, []);
+
   return (
     <div className="min-h-screen bg-[#F8F9FB] text-slate-900">
       <div className="flex min-h-screen">
@@ -122,16 +137,27 @@ function AppLayout() {
               >
                 <Menu size={21} />
               </button>
-
-              <div>
-                <p className="text-sm font-semibold text-slate-900">
-                  PayTrack
-                </p>
-
+              <div className="flex flex-wrap items-center gap-2">
                 <p className="hidden text-xs text-slate-500 sm:block">
                   Payment reconciliation workspace
                 </p>
+
+                <span
+                  className={`rounded-full px-2 py-1 text-xs font-medium ${apiStatus === "connected"
+                      ? "bg-emerald-50 text-emerald-700"
+                      : apiStatus === "error"
+                        ? "bg-rose-50 text-rose-700"
+                        : "bg-amber-50 text-amber-700"
+                    }`}
+                >
+                  {apiStatus === "connected"
+                    ? "API connected"
+                    : apiStatus === "error"
+                      ? "API connection failed"
+                      : "Connecting..."}
+                </span>
               </div>
+
             </div>
 
             <div className="flex items-center gap-2 sm:gap-3">
