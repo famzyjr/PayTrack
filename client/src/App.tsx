@@ -7,7 +7,7 @@ import Sidebar from "./components/Siderbar";
 import Dashboard from "./pages/Dashboard";
 import PayTrackTransactions from "./pages/PayTrackTransactions";
 import { initialTransactions } from "./data/PayTrackTransactions";
-
+import { AuthProvider } from "./context/AuthContext";
 import type {
   Transaction,
   TransactionStatus,
@@ -247,10 +247,13 @@ function AppLayout() {
 
 function App() {
   return (
-    <BrowserRouter>
-      <AppLayout />
-    </BrowserRouter>
+    <AuthProvider>
+      <BrowserRouter>
+        <AppLayout />
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
 
 export default App;
+
