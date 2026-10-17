@@ -14,6 +14,7 @@ interface ApiResponse {
 
 interface RegisterResponse extends ApiResponse {
   user: AuthUser;
+   token: string;
 }
 
 interface LoginResponse extends ApiResponse {
