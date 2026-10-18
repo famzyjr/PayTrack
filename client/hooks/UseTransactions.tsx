@@ -2,7 +2,12 @@
 import { useEffect, useState } from "react";
 
 import { useAuth } from "../src/context/AuthContext";
-import { getTransactions } from "../src/services/transactions";
+import {
+  createTransaction,
+  deleteTransaction,
+  getTransactions,
+  updateTransaction,
+} from "../src/services/transactions";
 
 import type {
   Transaction,
@@ -25,6 +30,7 @@ export function useTransactions() {
     if (!token) {
       setTransactions([]);
       setIsLoading(false);
+      setLoadError(null);
       return;
     }
 
@@ -57,69 +63,148 @@ export function useTransactions() {
     };
   }, [token]);
 
-  const handleAddTransaction = (
+  const handleAddTransaction = async (
     values: NewTransactionFormValues,
-  ) => {
-    const sender = values.sender.trim();
+  ): Promise<boolean> => {
+    if (!token) {
+      setLoadError("Your session has expired. Please log in again.");
+      return false;
+    }
 
-    const newTransaction: Transaction = {
-      id: crypto.randomUUID(),
-      sender,
-      initials: sender
-        .split(/\s+/)
-        .map((name) => name[0])
-        .join("")
-        .slice(0, 2)
-        .toUpperCase(),
-      reference: values.reference.trim(),
-      date: new Date(`${values.date}T12:00:00`).toLocaleDateString(
-        "en-US",
-        {
-          month: "short",
-          day: "2-digit",
-          year: "numeric",
-        },
-      ),
-      amount: Number(values.amount),
-      status: values.status,
-      remarks: values.remarks.trim(),
-    };
+    setLoadError(null);
 
-    setTransactions((previous) => [
-      newTransaction,
-      ...previous,
-    ]);
+    try {
+      const savedTransaction = await createTransaction(token, {
+        sender: values.sender.trim(),
+        reference: values.reference.trim(),
+        amount: Number(values.amount),
+        date: values.date,
+        status: values.status,
+        remarks: values.remarks.trim(),
+      });
 
-    setIsAddModalOpen(false);
+      setTransactions((previous) => [
+        savedTransaction,
+        ...previous.filter(
+          (transaction) => transaction.id !== savedTransaction.id,
+        ),
+      ]);
+
+      setIsAddModalOpen(false);
+      return true;
+    } catch (error: unknown) {
+      setLoadError(
+        error instanceof Error
+          ? error.message
+          : "Failed to create transaction.",
+      );
+
+      return false;
+    }
   };
 
-  const handleSaveRemarks = (
+  const handleSaveRemarks = async (
     id: string,
     remarks: string,
-  ) => {
-    setTransactions((previous) =>
-      previous.map((transaction) =>
-        transaction.id === id
-          ? { ...transaction, remarks }
-          : transaction,
-      ),
-    );
+  ): Promise<boolean> => {
+    if (!token) {
+      setLoadError("Your session has expired. Please log in again.");
+      return false;
+    }
+
+    setLoadError(null);
+
+    try {
+      const updatedTransaction = await updateTransaction(token, id, {
+        remarks: remarks.trim(),
+      });
+
+      setTransactions((previous) =>
+        previous.map((transaction) =>
+          transaction.id === id ? updatedTransaction : transaction,
+        ),
+      );
+
+      return true;
+    } catch (error: unknown) {
+      setLoadError(
+        error instanceof Error
+          ? error.message
+          : "Failed to save remarks.",
+      );
+
+      return false;
+    }
   };
 
-  const handleUpdateStatus = (
+  const handleUpdateStatus = async (
     id: string,
     status: TransactionStatus,
-  ) => {
-    setTransactions((previous) =>
-      previous.map((transaction) =>
-        transaction.id === id
-          ? { ...transaction, status }
-          : transaction,
-      ),
-    );
+  ): Promise<boolean> => {
+    if (!token) {
+      setLoadError("Your session has expired. Please log in again.");
+      return false;
+    }
+
+    setLoadError(null);
+
+    try {
+      const updatedTransaction = await updateTransaction(token, id, {
+        status,
+      });
+
+      setTransactions((previous) =>
+        previous.map((transaction) =>
+          transaction.id === id ? updatedTransaction : transaction,
+        ),
+      );
+
+      return true;
+    } catch (error: unknown) {
+      setLoadError(
+        error instanceof Error
+          ? error.message
+          : "Failed to update transaction status.",
+      );
+
+      return false;
+    }
   };
 
-  const openAddModal = () => setIsAddModalOpen(true);
+  const handleDeleteTransaction = async (
+    id: string,
+  ): Promise<boolean> => {
+    if (!token) {
+      setLoadError("Your session has expired. Please log in again.");
+      return false;
+    }
+
+    setLoadError(null);
+
+    try {
+      await deleteTransaction(token, id);
+
+      setTransactions((previous) =>
+        previous.filter((transaction) => transaction.id !== id),
+      );
+
+      return true;
+    } catch (error: unknown) {
+      setLoadError(
+        error instanceof Error
+          ? error.message
+          : "Failed to delete transaction.",
+      );
+
+      return false;
+    }
+  };
+
+  const openAddModal = () => {
+    setLoadError(null);
+    setIsAddModalOpen(true);
+  };
+
   const closeAddModal = () => setIsAddModalOpen(false);
 
   return {
@@ -130,6 +215,7 @@ export function useTransactions() {
     handleAddTransaction,
     handleSaveRemarks,
     handleUpdateStatus,
+    handleDeleteTransaction,
     openAddModal,
     closeAddModal,
   };

@@ -31,36 +31,58 @@ const AuthContext = createContext<AuthContextType | undefined>(
 
 const TOKEN_KEY = "paytrack_token";
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function AuthProvider({
+  children,
+}: {
+  children: ReactNode;
+}) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Restore the user's session when the application starts.
   useEffect(() => {
-    const savedToken = sessionStorage.getItem(TOKEN_KEY);
+    let cancelled = false;
 
-    if (!savedToken) {
-      setIsLoading(false);
-      return;
-    }
+    const restoreSession = async () => {
+      const savedToken = sessionStorage.getItem(TOKEN_KEY);
 
-    setToken(savedToken);
+      if (!savedToken) {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+        return;
+      }
 
-    getCurrentUser(savedToken)
-      .then((response) => {
+      try {
+        const response = await getCurrentUser(savedToken);
+
+        if (cancelled) return;
+
+        setToken(savedToken);
         setUser(response.user);
-      })
-      .catch(() => {
+      } catch {
+        if (cancelled) return;
+
         sessionStorage.removeItem(TOKEN_KEY);
         setToken(null);
         setUser(null);
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    void restoreSession();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const login = async (data: LoginData) => {
+  // Log in an existing user.
+  const login = async (data: LoginData): Promise<void> => {
     const response = await loginUser(data);
 
     sessionStorage.setItem(TOKEN_KEY, response.token);
@@ -68,7 +90,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(response.user);
   };
 
-  const register = async (data: RegisterData) => {
+  // Register a new user and start their session.
+  const register = async (data: RegisterData): Promise<void> => {
     const response = await registerUser(data);
 
     sessionStorage.setItem(TOKEN_KEY, response.token);
@@ -76,7 +99,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(response.user);
   };
 
-  const logout = () => {
+  // Clear the current browser session.
+  const logout = (): void => {
     sessionStorage.removeItem(TOKEN_KEY);
     setToken(null);
     setUser(null);
@@ -84,18 +108,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, token, isLoading, login, register, logout }}
+      value={{
+        user,
+        token,
+        isLoading,
+        login,
+        register,
+        logout,
+      }}
     >
       {children}
     </AuthContext.Provider>
   );
 }
 
-export function useAuth() {
+export function useAuth(): AuthContextType {
   const context = useContext(AuthContext);
 
   if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
+    throw new Error(
+      "useAuth must be used within an AuthProvider",
+    );
   }
 
   return context;
