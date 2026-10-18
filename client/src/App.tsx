@@ -1,16 +1,29 @@
 
 import { useState, useEffect } from "react";
-import { Bell, Menu, Plus } from "lucide-react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { apiRequest } from "./services/api";
+import {
+  Bell,
+  Menu,
+  Plus,
+} from "lucide-react";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+} from "react-router-dom";
+
 import Sidebar from "./components/Siderbar";
 import Dashboard from "./pages/Dashboard";
 import PayTrackTransactions from "./pages/PayTrackTransactions";
-import { initialTransactions } from "./data/PayTrackTransactions";
-import { AuthProvider } from "./context/AuthContext";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ProtectedRoute from "./components/ProtectedRoute";
+
+import { initialTransactions } from "./data/PayTrackTransactions";
+import { apiRequest } from "./services/api";
+import { AuthProvider, useAuth } from "./context/AuthContext";
+
 import type {
   Transaction,
   TransactionStatus,
@@ -22,11 +35,25 @@ function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
-  // Shared transaction state for both pages
   const [transactions, setTransactions] =
     useState<Transaction[]>(initialTransactions);
 
-  // Add a new transaction
+  const [apiStatus, setApiStatus] = useState<
+    "checking" | "connected" | "error"
+  >("checking");
+
+  const { user, logout } = useAuth();
+  const location = useLocation();
+
+  useEffect(() => {
+    apiRequest<{ success: boolean; message: string }>("/health")
+      .then(() => setApiStatus("connected"))
+      .catch((error: unknown) => {
+        console.error("PayTrack API connection failed:", error);
+        setApiStatus("error");
+      });
+  }, []);
+
   const handleAddTransaction = (
     values: NewTransactionFormValues,
   ) => {
@@ -34,48 +61,41 @@ function AppLayout() {
 
     const newTransaction: Transaction = {
       id: crypto.randomUUID(),
-
       sender,
-
       initials: sender
         .split(/\s+/)
         .map((name) => name[0])
         .join("")
         .slice(0, 2)
         .toUpperCase(),
-
       reference: values.reference.trim(),
-
-      date: new Date(
-        `${values.date}T12:00:00`,
-      ).toLocaleDateString("en-US", {
-        month: "short",
-        day: "2-digit",
-        year: "numeric",
-      }),
-
+      date: new Date(`${values.date}T12:00:00`).toLocaleDateString(
+        "en-US",
+        {
+          month: "short",
+          day: "2-digit",
+          year: "numeric",
+        },
+      ),
       amount: Number(values.amount),
-
       status: values.status,
-
       remarks: values.remarks.trim(),
     };
 
-    setTransactions((previousTransactions) => [
+    setTransactions((previous) => [
       newTransaction,
-      ...previousTransactions,
+      ...previous,
     ]);
 
     setIsAddModalOpen(false);
   };
 
-  // Save or update remarks
   const handleSaveRemarks = (
     id: string,
     remarks: string,
   ) => {
-    setTransactions((previousTransactions) =>
-      previousTransactions.map((transaction) =>
+    setTransactions((previous) =>
+      previous.map((transaction) =>
         transaction.id === id
           ? { ...transaction, remarks }
           : transaction,
@@ -83,13 +103,12 @@ function AppLayout() {
     );
   };
 
-  // Update a transaction's status
   const handleUpdateStatus = (
     id: string,
     status: TransactionStatus,
   ) => {
-    setTransactions((previousTransactions) =>
-      previousTransactions.map((transaction) =>
+    setTransactions((previous) =>
+      previous.map((transaction) =>
         transaction.id === id
           ? { ...transaction, status }
           : transaction,
@@ -97,28 +116,27 @@ function AppLayout() {
     );
   };
 
-  const closeAddModal = () => {
-    setIsAddModalOpen(false);
-  };
+  const closeAddModal = () => setIsAddModalOpen(false);
+  const openAddModal = () => setIsAddModalOpen(true);
 
-  const openAddModal = () => {
-    setIsAddModalOpen(true);
-  };
+  const isAuthPage =
+    location.pathname === "/login" ||
+    location.pathname === "/register";
 
-  const [apiStatus, setApiStatus] = useState<
-    "checking" | "connected" | "error"
-  >("checking");
+  // Redirect logged-in users away from Login and Register.
+  if (isAuthPage && user) {
+    return <Navigate to="/" replace />;
+  }
 
-  useEffect(() => {
-    apiRequest<{ success: boolean; message: string }>("/health")
-      .then(() => {
-        setApiStatus("connected");
-      })
-      .catch((error: unknown) => {
-        console.error("PayTrack API connection failed:", error);
-        setApiStatus("error");
-      });
-  }, []);
+  // Authentication pages do not show the dashboard layout.
+  if (isAuthPage) {
+    return (
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+      </Routes>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F8F9FB] text-slate-900">
@@ -129,7 +147,6 @@ function AppLayout() {
         />
 
         <main className="min-w-0 flex-1">
-          {/* Top navigation */}
           <header className="sticky top-0 z-30 flex h-[76px] items-center justify-between border-b border-slate-200 bg-white/95 px-4 backdrop-blur sm:px-6 lg:px-10">
             <div className="flex items-center gap-3">
               <button
@@ -140,18 +157,20 @@ function AppLayout() {
               >
                 <Menu size={21} />
               </button>
+
               <div className="flex flex-wrap items-center gap-2">
                 <p className="hidden text-xs text-slate-500 sm:block">
                   Payment reconciliation workspace
                 </p>
 
                 <span
-                  className={`rounded-full px-2 py-1 text-xs font-medium ${apiStatus === "connected"
+                  className={`rounded-full px-2 py-1 text-xs font-medium ${
+                    apiStatus === "connected"
                       ? "bg-emerald-50 text-emerald-700"
                       : apiStatus === "error"
                         ? "bg-rose-50 text-rose-700"
                         : "bg-amber-50 text-amber-700"
-                    }`}
+                  }`}
                 >
                   {apiStatus === "connected"
                     ? "API connected"
@@ -160,10 +179,15 @@ function AppLayout() {
                       : "Connecting..."}
                 </span>
               </div>
-
             </div>
 
             <div className="flex items-center gap-2 sm:gap-3">
+              {user && (
+                <span className="hidden text-sm text-slate-600 md:block">
+                  {user.name}
+                </span>
+              )}
+
               <button
                 type="button"
                 aria-label="Notifications"
@@ -181,19 +205,23 @@ function AppLayout() {
                 className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2.5 text-sm font-medium text-white hover:bg-slate-800 sm:px-4"
               >
                 <Plus size={17} />
-
                 <span className="hidden sm:inline">
                   Add transaction
                 </span>
-
                 <span className="sm:hidden">Add</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={logout}
+                className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                Sign out
               </button>
             </div>
           </header>
 
-          {/* Application routes */}
           <Routes>
-            {/* Dashboard */}
             <Route
               path="/"
               element={
@@ -208,7 +236,6 @@ function AppLayout() {
               }
             />
 
-            {/* All transactions */}
             <Route
               path="/transactions"
               element={
@@ -226,7 +253,6 @@ function AppLayout() {
               }
             />
 
-            {/* Fallback for unknown routes */}
             <Route
               path="*"
               element={
@@ -234,7 +260,6 @@ function AppLayout() {
                   <h1 className="text-2xl font-semibold">
                     Page not found
                   </h1>
-
                   <p className="mt-2 text-sm text-slate-500">
                     The page you are looking for does not exist.
                   </p>
@@ -252,11 +277,17 @@ function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <AppLayout />
+        <Routes>
+          <Route path="/login" element={<AppLayout />} />
+          <Route path="/register" element={<AppLayout />} />
+
+          <Route element={<ProtectedRoute />}>
+            <Route path="/*" element={<AppLayout />} />
+          </Route>
+        </Routes>
       </BrowserRouter>
     </AuthProvider>
   );
 }
 
 export default App;
-

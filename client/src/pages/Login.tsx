@@ -21,7 +21,7 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
-export default function Login() {
+const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [submitError, setSubmitError] = useState("");
 
@@ -206,3 +206,5 @@ export default function Login() {
     </main>
   );
 }
+
+export default Login
