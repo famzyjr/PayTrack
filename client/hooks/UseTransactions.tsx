@@ -1,7 +1,8 @@
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-import { initialTransactions } from "../src/data/PayTrackTransactions";
+import { useAuth } from "../src/context/AuthContext";
+import { getTransactions } from "../src/services/transactions";
 
 import type {
   Transaction,
@@ -11,10 +12,50 @@ import type {
 import type { NewTransactionFormValues } from "../src/components/AddTransactionModal";
 
 export function useTransactions() {
-  const [transactions, setTransactions] =
-    useState<Transaction[]>(initialTransactions);
+  const { token } = useAuth();
 
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!token) {
+      setTransactions([]);
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    setLoadError(null);
+
+    getTransactions(token)
+      .then((data) => {
+        if (!cancelled) {
+          setTransactions(data);
+        }
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setLoadError(
+            error instanceof Error
+              ? error.message
+              : "Failed to load transactions.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
 
   const handleAddTransaction = (
     values: NewTransactionFormValues,
@@ -84,6 +125,8 @@ export function useTransactions() {
   return {
     transactions,
     isAddModalOpen,
+    isLoading,
+    loadError,
     handleAddTransaction,
     handleSaveRemarks,
     handleUpdateStatus,
