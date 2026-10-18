@@ -8,6 +8,9 @@ import Dashboard from "./pages/Dashboard";
 import PayTrackTransactions from "./pages/PayTrackTransactions";
 import { initialTransactions } from "./data/PayTrackTransactions";
 import { AuthProvider } from "./context/AuthContext";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import ProtectedRoute from "./components/ProtectedRoute";
 import type {
   Transaction,
   TransactionStatus,
