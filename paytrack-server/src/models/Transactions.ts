@@ -14,6 +14,7 @@ export interface ITransaction extends Document {
   date: Date;
   status: TransactionStatus;
   remarks: string;
+   isReconciled: Boolean
 }
 
 const transactionSchema = new Schema<ITransaction>(
@@ -56,6 +57,10 @@ const transactionSchema = new Schema<ITransaction>(
       maxlength: 1000,
       default: "",
     },
+    isReconciled:{
+    type:Boolean,
+    default:false,
+    }
   },
   {
     timestamps: true,

@@ -79,6 +79,7 @@ function mapApiTransaction(
     amount: Number(transaction.amount),
     status: transaction.status,
     remarks: transaction.remarks ?? "",
+    isReconciled: transaction.isReconciled
   };
 }
 
