@@ -14,6 +14,7 @@ interface ApiTransaction {
   date: string;
   status: TransactionStatus;
   remarks?: string;
+   isReconciled: boolean
 }
 
 interface TransactionsResponse {

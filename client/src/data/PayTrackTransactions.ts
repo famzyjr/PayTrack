@@ -1,4 +1,4 @@
- 
+
 import type { Transaction } from "../types/PayTrackTransactions";
 
 export const initialTransactions: Transaction[] = [
@@ -10,7 +10,8 @@ export const initialTransactions: Transaction[] = [
     date: "Oct 11, 2026",
     amount: 125000,
     status: "Confirmed",
-    remarks: ""
+    remarks: "",
+     isReconciled:true,
   },
   {
     id: "2",
@@ -20,7 +21,8 @@ export const initialTransactions: Transaction[] = [
     date: "Oct 11, 2026",
     amount: 42000,
     status: "Pending",
-    remarks: ""
+    remarks: "",
+     isReconciled:false,
   },
   {
     id: "3",
@@ -30,7 +32,8 @@ export const initialTransactions: Transaction[] = [
     date: "Oct 10, 2026",
     amount: 80000,
     status: "Confirmed",
-    remarks: ""
+    remarks: "",
+     isReconciled:false,
   },
   {
     id: "4",
@@ -40,7 +43,8 @@ export const initialTransactions: Transaction[] = [
     date: "Oct 10, 2026",
     amount: 55000,
     status: "Needs review",
-    remarks: ""
+    remarks: "",
+     isReconciled:true,
   },
   {
     id: "5",
@@ -50,7 +54,8 @@ export const initialTransactions: Transaction[] = [
     date: "Oct 09, 2026",
     amount: 180000,
     status: "Confirmed",
-    remarks: ""
+    remarks: "",
+     isReconciled:true,
   },
    {
     id: "6",
@@ -60,6 +65,7 @@ export const initialTransactions: Transaction[] = [
     date: "Oct 09, 2026",
     amount: 1850000,
     status: "Confirmed",
-    remarks: ""
+    remarks: "",
+    isReconciled:true,
   },
 ];
