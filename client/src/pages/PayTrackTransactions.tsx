@@ -17,7 +17,15 @@ interface PayTrackTransactionsProps {
 
   onSaveRemarks: (id: string, remarks: string) => void;
 
-  onUpdateStatus: (id: string, status: TransactionStatus) => void;
+  onUpdateStatus: (
+    id: string,
+    status: TransactionStatus,
+  ) => void;
+
+  onToggleReconciliation: (
+    id: string,
+    isReconciled: boolean,
+  ) => Promise<void>;
 
   isAddModalOpen: boolean;
   onOpenAddModal: () => void;
@@ -29,6 +37,7 @@ function PayTrackTransactions({
   onAddTransaction,
   onSaveRemarks,
   onUpdateStatus,
+  onToggleReconciliation,
   isAddModalOpen,
   onOpenAddModal,
   onCloseAddModal,
@@ -78,6 +87,7 @@ function PayTrackTransactions({
         onAddTransaction={onAddTransaction}
         onSaveRemarks={onSaveRemarks}
         onUpdateStatus={onUpdateStatus}
+        onToggleReconciliation={onToggleReconciliation}
         isAddModalOpen={isAddModalOpen}
         onCloseAddModal={onCloseAddModal}
       />

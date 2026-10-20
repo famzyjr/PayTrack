@@ -171,6 +171,40 @@ export function useTransactions() {
     }
   };
 
+  // NEW: Save the reconciliation checkbox state to the backend.
+  const onToggleReconciliation = async (
+    id: string,
+    isReconciled: boolean,
+  ): Promise<void> => {
+    if (!token) {
+      throw new Error("Your session has expired. Please log in again.");
+    }
+
+    setLoadError(null);
+
+    try {
+      const updatedTransaction = await updateTransaction(token, id, {
+        isReconciled,
+      });
+
+      setTransactions((previous) =>
+        previous.map((transaction) =>
+          transaction.id === id ? updatedTransaction : transaction,
+        ),
+      );
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to update reconciliation status.";
+
+      setLoadError(message);
+
+      // Re-throw so the checkbox component can handle the failure.
+      throw new Error(message);
+    }
+  };
+
   const handleDeleteTransaction = async (
     id: string,
   ): Promise<boolean> => {
@@ -215,6 +249,7 @@ export function useTransactions() {
     handleAddTransaction,
     handleSaveRemarks,
     handleUpdateStatus,
+    onToggleReconciliation,
     handleDeleteTransaction,
     openAddModal,
     closeAddModal,

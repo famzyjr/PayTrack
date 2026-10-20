@@ -30,6 +30,10 @@ interface TransactionsTableProps {
   onAddTransaction: (values: NewTransactionFormValues) => void;
   onSaveRemarks: (id: string, remarks: string) => void;
   onUpdateStatus: (id: string, status: TransactionStatus) => void;
+  onToggleReconciliation: (
+    id: string,
+    isReconciled: boolean,
+  ) => Promise<void>;
   isAddModalOpen: boolean;
   onCloseAddModal: () => void;
 }
@@ -86,6 +90,7 @@ function TransactionsTable({
   onAddTransaction,
   onSaveRemarks,
   onUpdateStatus,
+  onToggleReconciliation,
   isAddModalOpen,
   onCloseAddModal,
 }: TransactionsTableProps) {
@@ -95,6 +100,13 @@ function TransactionsTable({
 
   // Store the ID so the modal receives the latest transaction.
   const [selectedTransactionId, setSelectedTransactionId] =
+    useState<string | null>(null);
+
+  // Track which transaction is currently being updated.
+  const [updatingReconciliation, setUpdatingReconciliation] =
+    useState<string | null>(null);
+
+  const [reconciliationError, setReconciliationError] =
     useState<string | null>(null);
 
   const {
@@ -128,6 +140,27 @@ function TransactionsTable({
     reset();
   };
 
+  // Save reconciliation status through the parent component/API.
+  const handleReconciliationChange = async (
+    id: string,
+    checked: boolean,
+  ) => {
+    setUpdatingReconciliation(id);
+    setReconciliationError(null);
+
+    try {
+      await onToggleReconciliation(id, checked);
+    } catch (error: unknown) {
+      setReconciliationError(
+        error instanceof Error
+          ? error.message
+          : "Unable to update reconciliation status.",
+      );
+    } finally {
+      setUpdatingReconciliation(null);
+    }
+  };
+
   const filteredTransactions = transactions.filter((transaction) => {
     const normalizedSearch = search.toLowerCase().trim();
 
@@ -138,7 +171,7 @@ function TransactionsTable({
     ].some((value) =>
       value.toLowerCase().includes(normalizedSearch),
     );
-
+     
     const matchesStatus =
       statusFilter === "All" ||
       transaction.status === statusFilter;
@@ -214,6 +247,7 @@ function TransactionsTable({
         "Date",
         "Amount (NGN)",
         "Status",
+        "Reconciled",
         "Remarks",
       ]],
       body: displayedTransactions.map((transaction) => [
@@ -222,6 +256,7 @@ function TransactionsTable({
         transaction.date,
         transaction.amount.toLocaleString("en-NG"),
         transaction.status,
+        transaction.isReconciled ? "[x] Checked" : "[ ] Not checked",
         transaction.remarks?.trim() || "No remarks",
       ]),
       theme: "grid",
@@ -234,7 +269,7 @@ function TransactionsTable({
         fillColor: [5, 150, 105],
       },
       columnStyles: {
-        5: { cellWidth: 65 },
+        6: { cellWidth: 55 },
       },
       margin: {
         left: 14,
@@ -416,9 +451,19 @@ function TransactionsTable({
         </div>
       </div>
 
+      {/* Reconciliation error */}
+      {reconciliationError && (
+        <p
+          role="alert"
+          className="border-b border-rose-100 bg-rose-50 px-5 py-3 text-sm text-rose-700"
+        >
+          {reconciliationError}
+        </p>
+      )}
+
       {/* Transactions table */}
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[1100px] text-left">
+        <table className="w-full min-w-[1200px] text-left">
           <thead>
             <tr className="bg-slate-50/70 text-xs font-medium uppercase tracking-wider text-slate-500">
               <th className="px-5 py-4">Sender</th>
@@ -427,6 +472,7 @@ function TransactionsTable({
               <th className="px-5 py-4">Amount</th>
               <th className="px-5 py-4">Status</th>
               <th className="px-5 py-4">Remarks</th>
+              <th className="px-5 py-4">Reconciled</th>
               <th className="px-5 py-4">Actions</th>
             </tr>
           </thead>
@@ -488,6 +534,34 @@ function TransactionsTable({
                 </td>
 
                 <td className="px-5 py-4">
+                  <label className="inline-flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={transaction.isReconciled ?? false}
+                      disabled={
+                        updatingReconciliation === transaction.id
+                      }
+                      onChange={(event) =>
+                        handleReconciliationChange(
+                          transaction.id,
+                          event.target.checked,
+                        )
+                      }
+                      aria-label={`Mark ${transaction.sender}'s transaction as reconciled`}
+                      className="h-4 w-4 cursor-pointer rounded border-slate-300 accent-emerald-600 disabled:cursor-wait disabled:opacity-50"
+                    />
+
+                    <span className="text-sm text-slate-600">
+                      {updatingReconciliation === transaction.id
+                        ? "Saving..."
+                        : transaction.isReconciled
+                          ? "Checked"
+                          : "Not checked"}
+                    </span>
+                  </label>
+                </td>
+
+                <td className="px-5 py-4">
                   <button
                     type="button"
                     onClick={() =>
@@ -505,7 +579,7 @@ function TransactionsTable({
             {displayedTransactions.length === 0 && (
               <tr>
                 <td
-                  colSpan={7}
+                  colSpan={8}
                   className="px-5 py-12 text-center text-sm text-slate-500"
                 >
                   {hasInvalidRange

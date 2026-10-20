@@ -9,6 +9,7 @@ import {
 
 import StatCard from "../components/StatCard";
 import TransactionsTable from "../components/TransactionsTable";
+
 import type { NewTransactionFormValues } from "../components/AddTransactionModal";
 
 import type {
@@ -18,13 +19,16 @@ import type {
 
 interface DashboardProps {
   transactions: Transaction[];
-
   onAddTransaction: (values: NewTransactionFormValues) => void;
-
   onSaveRemarks: (id: string, remarks: string) => void;
-
-  onUpdateStatus: (id: string, status: TransactionStatus) => void;
-
+  onUpdateStatus: (
+    id: string,
+    status: TransactionStatus,
+  ) => void;
+  onToggleReconciliation: (
+    id: string,
+    isReconciled: boolean,
+  ) => Promise<void>;
   isAddModalOpen: boolean;
   onCloseAddModal: () => void;
 }
@@ -34,6 +38,7 @@ function Dashboard({
   onAddTransaction,
   onSaveRemarks,
   onUpdateStatus,
+  onToggleReconciliation,
   isAddModalOpen,
   onCloseAddModal,
 }: DashboardProps) {
@@ -149,6 +154,7 @@ function Dashboard({
           onAddTransaction={onAddTransaction}
           onSaveRemarks={onSaveRemarks}
           onUpdateStatus={onUpdateStatus}
+          onToggleReconciliation={onToggleReconciliation}
           isAddModalOpen={isAddModalOpen}
           onCloseAddModal={onCloseAddModal}
         />

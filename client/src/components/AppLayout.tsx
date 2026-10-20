@@ -1,10 +1,6 @@
 
 import { useEffect, useState } from "react";
-import {
-    Bell,
-    Menu,
-    Plus,
-} from "lucide-react";
+import { Bell, Menu, Plus } from "lucide-react";
 import {
     Route,
     Routes,
@@ -38,6 +34,7 @@ export default function AppLayout() {
         handleAddTransaction,
         handleSaveRemarks,
         handleUpdateStatus,
+        onToggleReconciliation,
         openAddModal,
         closeAddModal,
     } = useTransactions();
@@ -46,7 +43,10 @@ export default function AppLayout() {
         apiRequest<{ success: boolean; message: string }>("/health")
             .then(() => setApiStatus("connected"))
             .catch((error: unknown) => {
-                console.error("PayTrack API connection failed:", error);
+                console.error(
+                    "PayTrack API connection failed:",
+                    error
+                );
                 setApiStatus("error");
             });
     }, []);
@@ -82,18 +82,19 @@ export default function AppLayout() {
                                 </p>
 
                                 <span
-                                    className={`rounded-full px-2 py-1 text-xs font-medium ${apiStatus === "connected"
+                                    className={`rounded-full px-2 py-1 text-xs font-medium ${
+                                        apiStatus === "connected"
                                             ? "bg-emerald-50 text-emerald-700"
                                             : apiStatus === "error"
-                                                ? "bg-rose-50 text-rose-700"
-                                                : "bg-amber-50 text-amber-700"
-                                        }`}
+                                              ? "bg-rose-50 text-rose-700"
+                                              : "bg-amber-50 text-amber-700"
+                                    }`}
                                 >
                                     {apiStatus === "connected"
                                         ? "API connected"
                                         : apiStatus === "error"
-                                            ? "API connection failed"
-                                            : "Connecting..."}
+                                          ? "API connection failed"
+                                          : "Connecting..."}
                                 </span>
                             </div>
                         </div>
@@ -109,7 +110,9 @@ export default function AppLayout() {
                                 type="button"
                                 aria-label="Notifications"
                                 onClick={() =>
-                                    alert("Notifications will be added later.")
+                                    alert(
+                                        "Notifications will be added later."
+                                    )
                                 }
                                 className="relative rounded-xl border border-slate-200 p-2.5 text-slate-600 hover:bg-slate-50"
                             >
@@ -125,7 +128,9 @@ export default function AppLayout() {
                                 <span className="hidden sm:inline">
                                     Add transaction
                                 </span>
-                                <span className="sm:hidden">Add</span>
+                                <span className="sm:hidden">
+                                    Add
+                                </span>
                             </button>
 
                             <button
@@ -137,6 +142,7 @@ export default function AppLayout() {
                             </button>
                         </div>
                     </header>
+
                     {isLoading && (
                         <p className="px-6 py-4 text-sm text-slate-500">
                             Loading your transactions...
@@ -154,6 +160,7 @@ export default function AppLayout() {
                             <p className="mt-1">{loadError}</p>
                         </div>
                     )}
+
                     <Routes>
                         <Route
                             path="/"
@@ -163,6 +170,9 @@ export default function AppLayout() {
                                     onAddTransaction={handleAddTransaction}
                                     onSaveRemarks={handleSaveRemarks}
                                     onUpdateStatus={handleUpdateStatus}
+                                    onToggleReconciliation={
+                                        onToggleReconciliation
+                                    }
                                     isAddModalOpen={isAddModalOpen}
                                     onCloseAddModal={closeAddModal}
                                 />
@@ -178,6 +188,9 @@ export default function AppLayout() {
                                         onAddTransaction={handleAddTransaction}
                                         onSaveRemarks={handleSaveRemarks}
                                         onUpdateStatus={handleUpdateStatus}
+                                        onToggleReconciliation={
+                                            onToggleReconciliation
+                                        }
                                         isAddModalOpen={isAddModalOpen}
                                         onOpenAddModal={openAddModal}
                                         onCloseAddModal={closeAddModal}
