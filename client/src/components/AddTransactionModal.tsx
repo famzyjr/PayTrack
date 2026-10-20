@@ -1,4 +1,5 @@
 
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -8,31 +9,42 @@ const transactionSchema = z.object({
   sender: z
     .string()
     .trim()
-    .min(2, "Sender name must be at least 2 characters"),
+    .min(2, "Sender name must be at least 2 characters."),
 
   reference: z
     .string()
     .trim()
-    .min(3, "Enter a valid transaction reference"),
+    .min(3, "Enter a valid transaction reference."),
 
   amount: z
     .string()
     .trim()
-    .min(1, "Amount is required")
+    .min(1, "Amount is required.")
     .refine(
-      (value) =>
-        /^\d+(\.\d{1,2})?$/.test(value) && Number(value) > 0,
-      "Enter a valid amount greater than zero",
+      (value) => /^\d+(\.\d{1,2})?$/.test(value) && Number(value) > 0,
+      "Enter a valid amount greater than zero, with up to 2 decimal places.",
     ),
 
-  date: z.string().min(1, "Transaction date is required"),
+  date: z
+    .string()
+    .min(1, "Transaction date is required.")
+    .refine((value) => {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+
+      const parsedDate = new Date(`${value}T00:00:00.000Z`);
+
+      return (
+        !Number.isNaN(parsedDate.getTime()) &&
+        parsedDate.toISOString().slice(0, 10) === value
+      );
+    }, "Enter a valid transaction date."),
 
   status: z.enum(["Confirmed", "Pending", "Needs review"]),
 
   remarks: z
     .string()
     .trim()
-    .max(500, "Remarks cannot exceed 500 characters"),
+    .max(500, "Remarks cannot exceed 500 characters."),
 });
 
 export type NewTransactionFormValues = z.infer<
@@ -41,13 +53,17 @@ export type NewTransactionFormValues = z.infer<
 
 interface AddTransactionModalProps {
   onClose: () => void;
-  onAddTransaction: (transaction: NewTransactionFormValues) => void;
+  onAddTransaction: (
+    transaction: NewTransactionFormValues,
+  ) => void | Promise<void>;
 }
 
 function AddTransactionModal({
   onClose,
   onAddTransaction,
 }: AddTransactionModalProps) {
+  const [submitError, setSubmitError] = useState("");
+
   const {
     register,
     handleSubmit,
@@ -65,13 +81,23 @@ function AddTransactionModal({
     },
   });
 
-  const onSubmit = (values: NewTransactionFormValues) => {
-    onAddTransaction(values);
-    onClose();
+  const onSubmit = async (values: NewTransactionFormValues) => {
+    setSubmitError("");
+
+    try {
+      await onAddTransaction(values);
+      onClose();
+    } catch (error: unknown) {
+      setSubmitError(
+        error instanceof Error
+          ? error.message
+          : "Unable to save the transaction. Please try again.",
+      );
+    }
   };
 
   const inputClass =
-    "w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/10";
+    "w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/10 disabled:cursor-not-allowed disabled:bg-slate-50";
 
   const labelClass =
     "mb-1.5 block text-sm font-medium text-slate-700";
@@ -82,7 +108,12 @@ function AddTransactionModal({
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4"
       onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
+        if (
+          !isSubmitting &&
+          event.target === event.currentTarget
+        ) {
+          onClose();
+        }
       }}
     >
       <section
@@ -99,6 +130,7 @@ function AddTransactionModal({
             >
               Add transaction
             </h2>
+
             <p className="mt-1 text-sm text-slate-500">
               Enter the transaction details below.
             </p>
@@ -107,8 +139,9 @@ function AddTransactionModal({
           <button
             type="button"
             onClick={onClose}
+            disabled={isSubmitting}
             aria-label="Close modal"
-            className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
+            className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <X size={20} />
           </button>
@@ -119,19 +152,36 @@ function AddTransactionModal({
           className="space-y-4 p-5"
           noValidate
         >
+          {submitError && (
+            <div
+              role="alert"
+              className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700"
+            >
+              {submitError}
+            </div>
+          )}
+
           <div>
             <label htmlFor="sender" className={labelClass}>
               Sender name
             </label>
+
             <input
               id="sender"
               {...register("sender")}
               placeholder="e.g. Ada Okafor"
               className={inputClass}
               aria-invalid={Boolean(errors.sender)}
+              aria-describedby={
+                errors.sender ? "sender-error" : undefined
+              }
+              disabled={isSubmitting}
             />
+
             {errors.sender && (
-              <p className={errorClass}>{errors.sender.message}</p>
+              <p id="sender-error" className={errorClass}>
+                {errors.sender.message}
+              </p>
             )}
           </div>
 
@@ -139,15 +189,23 @@ function AddTransactionModal({
             <label htmlFor="reference" className={labelClass}>
               Transaction reference
             </label>
+
             <input
               id="reference"
               {...register("reference")}
               placeholder="e.g. PAY-484200"
               className={inputClass}
               aria-invalid={Boolean(errors.reference)}
+              aria-describedby={
+                errors.reference ? "reference-error" : undefined
+              }
+              disabled={isSubmitting}
             />
+
             {errors.reference && (
-              <p className={errorClass}>{errors.reference.message}</p>
+              <p id="reference-error" className={errorClass}>
+                {errors.reference.message}
+              </p>
             )}
           </div>
 
@@ -156,6 +214,7 @@ function AddTransactionModal({
               <label htmlFor="amount" className={labelClass}>
                 Amount (₦)
               </label>
+
               <input
                 id="amount"
                 type="text"
@@ -164,9 +223,16 @@ function AddTransactionModal({
                 placeholder="e.g. 50000"
                 className={inputClass}
                 aria-invalid={Boolean(errors.amount)}
+                aria-describedby={
+                  errors.amount ? "amount-error" : undefined
+                }
+                disabled={isSubmitting}
               />
+
               {errors.amount && (
-                <p className={errorClass}>{errors.amount.message}</p>
+                <p id="amount-error" className={errorClass}>
+                  {errors.amount.message}
+                </p>
               )}
             </div>
 
@@ -174,15 +240,23 @@ function AddTransactionModal({
               <label htmlFor="date" className={labelClass}>
                 Transaction date
               </label>
+
               <input
                 id="date"
                 type="date"
                 {...register("date")}
                 className={inputClass}
                 aria-invalid={Boolean(errors.date)}
+                aria-describedby={
+                  errors.date ? "date-error" : undefined
+                }
+                disabled={isSubmitting}
               />
+
               {errors.date && (
-                <p className={errorClass}>{errors.date.message}</p>
+                <p id="date-error" className={errorClass}>
+                  {errors.date.message}
+                </p>
               )}
             </div>
           </div>
@@ -191,10 +265,12 @@ function AddTransactionModal({
             <label htmlFor="status" className={labelClass}>
               Status
             </label>
+
             <select
               id="status"
               {...register("status")}
               className={inputClass}
+              disabled={isSubmitting}
             >
               <option value="Pending">Pending</option>
               <option value="Confirmed">Confirmed</option>
@@ -209,6 +285,7 @@ function AddTransactionModal({
                 (optional)
               </span>
             </label>
+
             <textarea
               id="remarks"
               {...register("remarks")}
@@ -217,10 +294,18 @@ function AddTransactionModal({
               placeholder="e.g. October textbook payment"
               className={`${inputClass} resize-y`}
               aria-invalid={Boolean(errors.remarks)}
+              aria-describedby={
+                errors.remarks ? "remarks-error" : undefined
+              }
+              disabled={isSubmitting}
             />
+
             {errors.remarks && (
-              <p className={errorClass}>{errors.remarks.message}</p>
+              <p id="remarks-error" className={errorClass}>
+                {errors.remarks.message}
+              </p>
             )}
+
             <p className="mt-1 text-xs text-slate-400">
               Add a note to help identify what the payment is for.
             </p>
@@ -230,7 +315,8 @@ function AddTransactionModal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              disabled={isSubmitting}
+              className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Cancel
             </button>
@@ -240,7 +326,7 @@ function AddTransactionModal({
               disabled={isSubmitting}
               className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Add transaction
+              {isSubmitting ? "Saving transaction..." : "Add transaction"}
             </button>
           </div>
         </form>
