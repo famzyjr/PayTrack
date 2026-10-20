@@ -14,7 +14,7 @@ export interface ITransaction extends Document {
   date: Date;
   status: TransactionStatus;
   remarks: string;
-   isReconciled: Boolean
+   isReconciled: boolean
 }
 
 const transactionSchema = new Schema<ITransaction>(

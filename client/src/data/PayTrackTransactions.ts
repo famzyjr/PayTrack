@@ -11,7 +11,7 @@ export const initialTransactions: Transaction[] = [
     amount: 125000,
     status: "Confirmed",
     remarks: "",
-     isReconciled:true,
+     isReconciled:false,
   },
   {
     id: "2",
@@ -44,7 +44,7 @@ export const initialTransactions: Transaction[] = [
     amount: 55000,
     status: "Needs review",
     remarks: "",
-     isReconciled:true,
+     isReconciled:false,
   },
   {
     id: "5",
@@ -55,7 +55,7 @@ export const initialTransactions: Transaction[] = [
     amount: 180000,
     status: "Confirmed",
     remarks: "",
-     isReconciled:true,
+     isReconciled:false,
   },
    {
     id: "6",
@@ -66,6 +66,6 @@ export const initialTransactions: Transaction[] = [
     amount: 1850000,
     status: "Confirmed",
     remarks: "",
-    isReconciled:true,
+    isReconciled:false,
   },
 ];

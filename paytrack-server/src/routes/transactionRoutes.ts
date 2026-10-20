@@ -11,14 +11,20 @@ const router = Router();
 // Every transaction endpoint requires a valid JWT.
 router.use(authenticateToken);
 
+
 const transactionSchema = z.object({
   sender: z.string().trim().min(1, "Sender name is required").max(100),
   reference: z.string().trim().min(1, "Reference is required").max(100),
-  amount: z.coerce.number().finite().positive("Amount must be greater than zero"),
+  amount: z.coerce
+    .number()
+    .finite()
+    .positive("Amount must be greater than zero"),
   date: z.coerce.date(),
   status: z.enum(["Confirmed", "Pending", "Needs review"]).default("Pending"),
   remarks: z.string().trim().max(1000).default(""),
+  isReconciled: z.boolean().default(false),
 });
+
 
 const updateTransactionSchema = transactionSchema
   .partial()

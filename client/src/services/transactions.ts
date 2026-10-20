@@ -14,7 +14,7 @@ interface ApiTransaction {
   date: string;
   status: TransactionStatus;
   remarks?: string;
-   isReconciled: boolean
+   isReconciled?: boolean
 }
 
 interface TransactionsResponse {
@@ -41,12 +41,13 @@ export interface CreateTransactionData {
   date: string;
   status: TransactionStatus;
   remarks: string;
+  isReconciled?: boolean;
 }
 
 export type UpdateTransactionData = Partial<
   Pick<
     Transaction,
-    "sender" | "reference" | "amount" | "status" | "remarks"
+    "sender" | "reference" | "amount" | "status" | "remarks"| "isReconciled"
   >
 >;
 
@@ -80,7 +81,7 @@ function mapApiTransaction(
     amount: Number(transaction.amount),
     status: transaction.status,
     remarks: transaction.remarks ?? "",
-    isReconciled: transaction.isReconciled
+    isReconciled: transaction.isReconciled ?? false,
   };
 }
 
