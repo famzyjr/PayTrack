@@ -11,7 +11,7 @@ const router = Router();
 // Every transaction endpoint requires a valid JWT.
 router.use(authenticateToken);
 
-
+// Schema used when creating a transaction.
 const transactionSchema = z.object({
   sender: z.string().trim().min(1, "Sender name is required").max(100),
   reference: z.string().trim().min(1, "Reference is required").max(100),
@@ -25,9 +25,66 @@ const transactionSchema = z.object({
   isReconciled: z.boolean().default(false),
 });
 
+// Validates YYYY-MM-DD without allowing impossible dates.
+const transactionDateSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must use YYYY-MM-DD format")
+  .refine((value) => {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
 
-const updateTransactionSchema = transactionSchema
-  .partial()
+    if (!match) return false;
+
+    const [, year, month, day] = match;
+    const parsed = new Date(
+      Date.UTC(Number(year), Number(month) - 1, Number(day)),
+    );
+
+    return (
+      parsed.getUTCFullYear() === Number(year) &&
+      parsed.getUTCMonth() === Number(month) - 1 &&
+      parsed.getUTCDate() === Number(day)
+    );
+  }, "Please provide a valid transaction date")
+  .transform((value) => {
+    const [year, month, day] = value.split("-").map(Number);
+
+    // Store the selected calendar date at UTC midnight.
+    return new Date(Date.UTC(year, month - 1, day));
+  });
+
+// Schema used when updating only the fields provided.
+const updateTransactionSchema = z
+  .object({
+    sender: z
+      .string()
+      .trim()
+      .min(1, "Sender name is required")
+      .max(100)
+      .optional(),
+
+    reference: z
+      .string()
+      .trim()
+      .min(1, "Reference is required")
+      .max(100)
+      .optional(),
+
+    amount: z.coerce
+      .number()
+      .finite()
+      .positive("Amount must be greater than zero")
+      .optional(),
+
+    date: transactionDateSchema.optional(),
+
+    status: z
+      .enum(["Confirmed", "Pending", "Needs review"])
+      .optional(),
+
+    remarks: z.string().trim().max(1000).optional(),
+
+    isReconciled: z.boolean().optional(),
+  })
   .refine((data) => Object.keys(data).length > 0, {
     message: "Provide at least one field to update",
   });
@@ -160,7 +217,10 @@ router.patch("/:id", async (req: Request, res: Response): Promise<void> => {
         userId: req.userId,
       },
       { $set: result.data },
-      { new: true, runValidators: true }
+      {
+        new: true,
+        runValidators: true,
+      },
     );
 
     if (!transaction) {
@@ -177,7 +237,28 @@ router.patch("/:id", async (req: Request, res: Response): Promise<void> => {
       transaction,
     });
   } catch (error: unknown) {
+    // Log the actual failure on the backend for diagnosis.
     console.error("Update transaction error:", error);
+
+    if (
+      error instanceof mongoose.mongo.MongoServerError &&
+      error.code === 11000
+    ) {
+      res.status(409).json({
+        success: false,
+        message: "This transaction reference already exists in your account",
+      });
+      return;
+    }
+
+    if (error instanceof mongoose.Error.ValidationError) {
+      res.status(400).json({
+        success: false,
+        message: "Transaction validation failed",
+        errors: Object.values(error.errors).map((issue) => issue.message),
+      });
+      return;
+    }
 
     res.status(500).json({
       success: false,

@@ -20,44 +20,51 @@ interface EditTransactionModalProps {
   ) => Promise<void>;
 }
 
-/**
- * Converts an API date or a formatted display date into
- * YYYY-MM-DD, the format required by an HTML date input.
- */
 function formatDateForInput(dateValue: string): string {
   if (!dateValue) return "";
 
-  // If the date already starts with YYYY-MM-DD, preserve
-  // its calendar date without timezone conversion.
-  const isoDateMatch = dateValue.match(/^(\d{4}-\d{2}-\d{2})/);
+  // Preserve an existing YYYY-MM-DD date.
+  const isoMatch = dateValue.match(/^(\d{4})-(\d{2})-(\d{2})/);
 
-  if (isoDateMatch) {
-    const datePart = isoDateMatch[1];
-    const [year, month, day] = datePart.split("-").map(Number);
-
-    const date = new Date(year, month - 1, day);
+  if (isoMatch) {
+    const [, year, month, day] = isoMatch;
+    const date = new Date(
+      Number(year),
+      Number(month) - 1,
+      Number(day),
+    );
 
     if (
-      date.getFullYear() === year &&
-      date.getMonth() === month - 1 &&
-      date.getDate() === day
+      date.getFullYear() === Number(year) &&
+      date.getMonth() === Number(month) - 1 &&
+      date.getDate() === Number(day)
     ) {
-      return datePart;
+      return `${year}-${month}-${day}`;
     }
   }
 
-  // Supports display dates such as "Oct 18, 2026".
+  // Also support display dates such as "Oct 18, 2026".
   const parsedDate = new Date(dateValue);
 
   if (Number.isNaN(parsedDate.getTime())) {
     return "";
   }
 
-  const year = parsedDate.getFullYear();
-  const month = String(parsedDate.getMonth() + 1).padStart(2, "0");
-  const day = String(parsedDate.getDate()).padStart(2, "0");
+  // Use UTC components for ISO timestamps to avoid changing
+  // the calendar date because of the browser's timezone.
+  if (dateValue.includes("T") || dateValue.endsWith("Z")) {
+    return [
+      parsedDate.getUTCFullYear(),
+      String(parsedDate.getUTCMonth() + 1).padStart(2, "0"),
+      String(parsedDate.getUTCDate()).padStart(2, "0"),
+    ].join("-");
+  }
 
-  return `${year}-${month}-${day}`;
+  return [
+    parsedDate.getFullYear(),
+    String(parsedDate.getMonth() + 1).padStart(2, "0"),
+    String(parsedDate.getDate()).padStart(2, "0"),
+  ].join("-");
 }
 
 function EditTransactionModal({
@@ -96,10 +103,49 @@ function EditTransactionModal({
 
   const onSubmit = async (values: NewTransactionFormValues) => {
     try {
+      if (!values.date) {
+        setError("date", {
+          type: "manual",
+          message: "Please select a transaction date.",
+        });
+        return;
+      }
+
+      // HTML date inputs should provide YYYY-MM-DD.
+      const dateMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(values.date);
+
+      if (!dateMatch) {
+        setError("date", {
+          type: "manual",
+          message: "Please enter a valid transaction date.",
+        });
+        return;
+      }
+
+      const [, year, month, day] = dateMatch;
+      const checkedDate = new Date(
+        Number(year),
+        Number(month) - 1,
+        Number(day),
+      );
+
+      if (
+        checkedDate.getFullYear() !== Number(year) ||
+        checkedDate.getMonth() !== Number(month) - 1 ||
+        checkedDate.getDate() !== Number(day)
+      ) {
+        setError("date", {
+          type: "manual",
+          message: "The selected transaction date is invalid.",
+        });
+        return;
+      }
+
       await onUpdateTransaction(transaction.id, values);
       onClose();
     } catch (error: unknown) {
       setError("root", {
+        type: "server",
         message:
           error instanceof Error
             ? error.message
@@ -111,8 +157,7 @@ function EditTransactionModal({
   const inputClass =
     "w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/10";
 
-  const labelClass =
-    "mb-1.5 block text-sm font-medium text-slate-700";
+  const labelClass = "mb-1.5 block text-sm font-medium text-slate-700";
 
   return (
     <div
@@ -137,7 +182,6 @@ function EditTransactionModal({
             >
               Edit transaction
             </h2>
-
             <p className="mt-1 text-sm text-slate-500">
               Update the transaction details below.
             </p>
@@ -154,22 +198,17 @@ function EditTransactionModal({
           </button>
         </div>
 
-        <form
-          onSubmit={handleSubmit(onSubmit)}
-          className="space-y-5 p-5"
-        >
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 p-5">
           <div>
             <label htmlFor="edit-sender" className={labelClass}>
               Sender name
             </label>
-
             <input
               id="edit-sender"
               {...register("sender")}
               className={inputClass}
               placeholder="Enter sender's name"
             />
-
             {errors.sender && (
               <p className="mt-1 text-xs text-rose-600">
                 {errors.sender.message}
@@ -181,14 +220,12 @@ function EditTransactionModal({
             <label htmlFor="edit-reference" className={labelClass}>
               Transaction reference
             </label>
-
             <input
               id="edit-reference"
               {...register("reference")}
               className={inputClass}
               placeholder="Enter transaction reference"
             />
-
             {errors.reference && (
               <p className="mt-1 text-xs text-rose-600">
                 {errors.reference.message}
@@ -201,7 +238,6 @@ function EditTransactionModal({
               <label htmlFor="edit-amount" className={labelClass}>
                 Amount (₦)
               </label>
-
               <input
                 id="edit-amount"
                 type="number"
@@ -212,7 +248,6 @@ function EditTransactionModal({
                 className={inputClass}
                 placeholder="e.g. 2300"
               />
-
               {errors.amount && (
                 <p className="mt-1 text-xs text-rose-600">
                   {errors.amount.message}
@@ -224,14 +259,12 @@ function EditTransactionModal({
               <label htmlFor="edit-date" className={labelClass}>
                 Transaction date
               </label>
-
               <input
                 id="edit-date"
                 type="date"
                 {...register("date")}
                 className={inputClass}
               />
-
               {errors.date && (
                 <p className="mt-1 text-xs text-rose-600">
                   {errors.date.message}
@@ -244,7 +277,6 @@ function EditTransactionModal({
             <label htmlFor="edit-status" className={labelClass}>
               Status
             </label>
-
             <select
               id="edit-status"
               {...register("status")}
@@ -254,7 +286,6 @@ function EditTransactionModal({
               <option value="Pending">Pending</option>
               <option value="Needs review">Needs review</option>
             </select>
-
             {errors.status && (
               <p className="mt-1 text-xs text-rose-600">
                 {errors.status.message}
@@ -266,7 +297,6 @@ function EditTransactionModal({
             <label htmlFor="edit-remarks" className={labelClass}>
               Remarks
             </label>
-
             <textarea
               id="edit-remarks"
               {...register("remarks")}
@@ -274,7 +304,6 @@ function EditTransactionModal({
               className={inputClass}
               placeholder="Add notes about this transaction..."
             />
-
             {errors.remarks && (
               <p className="mt-1 text-xs text-rose-600">
                 {errors.remarks.message}
