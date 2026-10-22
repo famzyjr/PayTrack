@@ -26,6 +26,11 @@ interface PayTrackTransactionsProps {
     id: string,
     isReconciled: boolean,
   ) => Promise<void>;
+  
+  onUpdateTransaction: (
+  id: string,
+  values: NewTransactionFormValues,
+) => Promise<void>;
 
   isAddModalOpen: boolean;
   onOpenAddModal: () => void;
@@ -41,6 +46,7 @@ function PayTrackTransactions({
   isAddModalOpen,
   onOpenAddModal,
   onCloseAddModal,
+  onUpdateTransaction
 }: PayTrackTransactionsProps) {
   return (
     <div className="space-y-8">
@@ -90,6 +96,7 @@ function PayTrackTransactions({
         onToggleReconciliation={onToggleReconciliation}
         isAddModalOpen={isAddModalOpen}
         onCloseAddModal={onCloseAddModal}
+        onUpdateTransaction={onUpdateTransaction}
       />
     </div>
   );

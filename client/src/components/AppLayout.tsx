@@ -25,7 +25,7 @@ export default function AppLayout() {
 
     const { user, logout } = useAuth();
     const navigate = useNavigate();
-
+      
     const {
         transactions,
         isAddModalOpen,
@@ -37,6 +37,8 @@ export default function AppLayout() {
         onToggleReconciliation,
         openAddModal,
         closeAddModal,
+        handleUpdateTransaction,
+        
     } = useTransactions();
 
     useEffect(() => {
@@ -55,7 +57,7 @@ export default function AppLayout() {
         logout();
         navigate("/login", { replace: true });
     };
-
+    
     return (
         <div className="min-h-screen bg-[#F8F9FB] text-slate-900">
             <div className="flex min-h-screen">
@@ -175,6 +177,7 @@ export default function AppLayout() {
                                     }
                                     isAddModalOpen={isAddModalOpen}
                                     onCloseAddModal={closeAddModal}
+                                    onUpdateTransaction={handleUpdateTransaction}
                                 />
                             }
                         />
@@ -194,6 +197,7 @@ export default function AppLayout() {
                                         isAddModalOpen={isAddModalOpen}
                                         onOpenAddModal={openAddModal}
                                         onCloseAddModal={closeAddModal}
+                                          onUpdateTransaction={handleUpdateTransaction}
                                     />
                                 </div>
                             }

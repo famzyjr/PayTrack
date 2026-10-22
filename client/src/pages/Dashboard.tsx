@@ -29,6 +29,12 @@ interface DashboardProps {
     id: string,
     isReconciled: boolean,
   ) => Promise<void>;
+
+  onUpdateTransaction: (
+  id: string,
+  values: NewTransactionFormValues,
+) => Promise<void>;
+
   isAddModalOpen: boolean;
   onCloseAddModal: () => void;
 }
@@ -41,6 +47,7 @@ function Dashboard({
   onToggleReconciliation,
   isAddModalOpen,
   onCloseAddModal,
+    onUpdateTransaction
 }: DashboardProps) {
   const dateStr = new Date().toDateString();
 
@@ -157,6 +164,8 @@ function Dashboard({
           onToggleReconciliation={onToggleReconciliation}
           isAddModalOpen={isAddModalOpen}
           onCloseAddModal={onCloseAddModal}
+          onUpdateTransaction={onUpdateTransaction}
+          
         />
       </section>
 

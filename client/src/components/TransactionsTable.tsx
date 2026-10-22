@@ -5,6 +5,7 @@ import {
   RotateCcw,
   Download,
   Eye,
+  Pencil,
 } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -17,6 +18,8 @@ import AddTransactionModal, {
   type NewTransactionFormValues,
 } from "./AddTransactionModal";
 import TransactionDetailsModal from "./TransactionDetailsModal";
+import EditTransactionModal from "../components/EditTransactionModal";
+
 
 import type {
   Transaction,
@@ -34,9 +37,17 @@ interface TransactionsTableProps {
     id: string,
     isReconciled: boolean,
   ) => Promise<void>;
+
+  onUpdateTransaction:(
+    id: string,
+    values: NewTransactionFormValues,
+  ) => Promise<void>
+
   isAddModalOpen: boolean;
   onCloseAddModal: () => void;
 }
+
+
 
 const statusStyles: Record<TransactionStatus, string> = {
   Confirmed: "bg-emerald-50 text-emerald-700",
@@ -93,6 +104,8 @@ function TransactionsTable({
   onToggleReconciliation,
   isAddModalOpen,
   onCloseAddModal,
+    onUpdateTransaction
+
 }: TransactionsTableProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] =
@@ -108,6 +121,12 @@ function TransactionsTable({
 
   const [reconciliationError, setReconciliationError] =
     useState<string | null>(null);
+  const [editingTransactionId, setEditingTransactionId] =
+    useState<string | null>(null);
+
+  const editingTransaction = transactions.find(
+    (transaction) => transaction.id === editingTransactionId,
+  )
 
   const {
     register,
@@ -171,7 +190,7 @@ function TransactionsTable({
     ].some((value) =>
       value.toLowerCase().includes(normalizedSearch),
     );
-     
+
     const matchesStatus =
       statusFilter === "All" ||
       transaction.status === statusFilter;
@@ -193,6 +212,7 @@ function TransactionsTable({
     const matchesMaxAmount =
       maxAmount === "" ||
       transaction.amount <= Number(maxAmount);
+
 
     return (
       matchesSearch &&
@@ -534,31 +554,19 @@ function TransactionsTable({
                 </td>
 
                 <td className="px-5 py-4">
-                  <label className="inline-flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={transaction.isReconciled ?? false}
-                      disabled={
-                        updatingReconciliation === transaction.id
-                      }
-                      onChange={(event) =>
-                        handleReconciliationChange(
-                          transaction.id,
-                          event.target.checked,
-                        )
-                      }
-                      aria-label={`Mark ${transaction.sender}'s transaction as reconciled`}
-                      className="h-4 w-4 cursor-pointer rounded border-slate-300 accent-emerald-600 disabled:cursor-wait disabled:opacity-50"
-                    />
+                  <div className="flex items-center gap-4">
+                    <button
+                      type="button"
+                      onClick={() => setEditingTransactionId(transaction.id)}
+                      className="inline-flex items-center gap-1.5 whitespace-nowrap text-sm font-semibold text-slate-700 transition hover:text-emerald-700"
+                      aria-label={`Edit transaction from ${transaction.sender}`}
+                    >
+                      <Pencil size={15} />
+                      Edit
+                    </button>
 
-                    <span className="text-sm text-slate-600">
-                      {updatingReconciliation === transaction.id
-                        ? "Saving..."
-                        : transaction.isReconciled
-                          ? "Checked"
-                          : "Not checked"}
-                    </span>
-                  </label>
+
+                  </div>
                 </td>
 
                 <td className="px-5 py-4">
@@ -614,6 +622,14 @@ function TransactionsTable({
           onUpdateStatus={onUpdateStatus}
         />
       )}
+       
+      {editingTransaction &&(
+      <EditTransactionModal
+        transaction={editingTransaction}
+      onClose={() => setEditingTransactionId(null)}
+        onUpdateTransaction={onUpdateTransaction}
+       />
+      )} 
     </section>
   );
 }

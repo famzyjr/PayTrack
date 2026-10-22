@@ -5,7 +5,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { X } from "lucide-react";
 
-const transactionSchema = z.object({
+export const transactionSchema = z.object({
   sender: z
     .string()
     .trim()

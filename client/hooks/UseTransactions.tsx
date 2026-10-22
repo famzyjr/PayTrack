@@ -234,6 +234,41 @@ export function useTransactions() {
     }
   };
 
+  const handleUpdateTransaction = async (
+  id: string,
+  values: NewTransactionFormValues,
+): Promise<void> => {
+  if (!token) {
+    throw new Error("Your session has expired. Please log in again.");
+  }
+
+  setLoadError(null);
+
+  try {
+    const updatedTransaction = await updateTransaction(token, id, {
+      sender: values.sender.trim(),
+      reference: values.reference.trim(),
+      amount: Number(values.amount),
+      date: values.date,
+      status: values.status,
+      remarks: values.remarks.trim(),
+    });
+
+    setTransactions((previous) =>
+      previous.map((transaction) =>
+        transaction.id === id ? updatedTransaction : transaction,
+      ),
+    );
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Failed to update transaction.";
+
+    setLoadError(message);
+    throw new Error(message);
+  }
+};
   const openAddModal = () => {
     setLoadError(null);
     setIsAddModalOpen(true);
@@ -253,5 +288,6 @@ export function useTransactions() {
     handleDeleteTransaction,
     openAddModal,
     closeAddModal,
+    handleUpdateTransaction,
   };
 }
