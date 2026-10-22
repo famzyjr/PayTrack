@@ -47,7 +47,7 @@ export interface CreateTransactionData {
 export type UpdateTransactionData = Partial<
   Pick<
     Transaction,
-    "sender" | "reference" | "amount" | "status" | "remarks"| "isReconciled"
+    "sender" | "reference" | "amount" | "status" | "remarks"| "isReconciled"|"date"
   >
 >;
 
