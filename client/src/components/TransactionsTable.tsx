@@ -447,15 +447,8 @@ function TransactionsTable({
         </div>
       </div>
 
-      {/* Reconciliation error */}
-      {reconciliationError && (
-        <p
-          role="alert"
-          className="border-b border-rose-100 bg-rose-50 px-5 py-3 text-sm text-rose-700"
-        >
-          {reconciliationError}
-        </p>
-      )}
+      
+    
 
       {/* Transactions table */}
       <div className="overflow-x-auto">
