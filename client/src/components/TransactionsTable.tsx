@@ -11,8 +11,6 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 
 import AddTransactionModal, {
   type NewTransactionFormValues,
@@ -235,70 +233,178 @@ function TransactionsTable({
     : filteredTransactions;
 
   // Export currently filtered transactions to PDF.
-  const handleExportPDF = () => {
-    if (displayedTransactions.length === 0) return;
+ 
+const handleExportPDF = async  () => {
+  if (displayedTransactions.length === 0) return;
+  const [{ default: jsPDF }, { default: autoTable }] =
+    await Promise.all([
+      import("jspdf"),
+      import("jspdf-autotable"),
+    ]);
+  const doc = new jsPDF({
+    orientation: "landscape",
+    unit: "mm",
+    format: "a4",
+  });
 
-    const doc = new jsPDF({
-      orientation: "landscape",
-      unit: "mm",
-      format: "a4",
-    });
+  const reconciledCount = displayedTransactions.filter(
+    (transaction) => transaction.isReconciled,
+  ).length;
 
-    doc.setFontSize(18);
-    doc.text("PayTrack Transaction Report", 14, 18);
+  const unreconciledCount =
+    displayedTransactions.length - reconciledCount;
 
+  const totalAmount = displayedTransactions.reduce(
+    (total, transaction) => total + transaction.amount,
+    0,
+  );
+
+  const formatCurrency = (amount: number) =>
+    `NGN ${amount.toLocaleString("en-NG", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+
+  const generatedAt = new Date().toLocaleString("en-NG", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+
+  // Report heading
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(20);
+  doc.setTextColor(5, 100, 75);
+  doc.text("PayTrack Transaction Report", 14, 18);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(100, 116, 139);
+  doc.text(`Generated: ${generatedAt}`, 14, 25);
+
+  // Summary section
+  doc.setDrawColor(226, 232, 240);
+  doc.setFillColor(248, 250, 252);
+  doc.roundedRect(14, 31, 269, 23, 2, 2, "FD");
+
+  const summaryItems = [
+    {
+      label: "TOTAL RECORDS",
+      value: String(displayedTransactions.length),
+      x: 20,
+    },
+    {
+      label: "TOTAL AMOUNT",
+      value: formatCurrency(totalAmount),
+      x: 82,
+    },
+    {
+      label: "RECONCILED",
+      value: String(reconciledCount),
+      x: 166,
+    },
+    {
+      label: "UNRECONCILED",
+      value: String(unreconciledCount),
+      x: 224,
+    },
+  ];
+
+  summaryItems.forEach(({ label, value, x }) => {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.setTextColor(100, 116, 139);
+    doc.text(label, x, 39);
+
+    doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
-    doc.text(
-      `Generated: ${new Date().toLocaleDateString("en-NG")}`,
-      14,
-      25,
-    );
-    doc.text(
-      `Total records: ${displayedTransactions.length}`,
-      14,
-      31,
-    );
+    doc.setTextColor(15, 23, 42);
+    doc.text(value, x, 47);
+  });
 
-    autoTable(doc, {
-      startY: 38,
-      head: [[
-        "Sender",
-        "Reference",
-        "Date",
-        "Amount (NGN)",
-        "Status",
-        "Reconciled",
-        "Remarks",
-      ]],
-      body: displayedTransactions.map((transaction) => [
-        transaction.sender,
-        transaction.reference,
-        transaction.date,
-        transaction.amount.toLocaleString("en-NG"),
-        transaction.status,
-        transaction.isReconciled ? "[x] Checked" : "[ ] Not checked",
-        transaction.remarks?.trim() || "No remarks",
-      ]),
-      theme: "grid",
-      styles: {
-        fontSize: 8,
-        cellPadding: 3,
-        overflow: "linebreak",
-      },
-      headStyles: {
-        fillColor: [5, 150, 105],
-      },
-      columnStyles: {
-        6: { cellWidth: 55 },
-      },
-      margin: {
-        left: 14,
-        right: 14,
-      },
-    });
+  // Transaction table
+  autoTable(doc, {
+    startY: 60,
+    head: [[
+      "Sender",
+      "Reference",
+      "Date",
+      "Amount (NGN)",
+      "Status",
+      "Reconciled",
+      "Remarks",
+    ]],
+    body: displayedTransactions.map((transaction) => [
+      transaction.sender,
+      transaction.reference,
+      transaction.date,
+      transaction.amount.toLocaleString("en-NG", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }),
+      transaction.status,
+      transaction.isReconciled
+        ? "[x] Reconciled"
+        : "[ ] Unreconciled",
+      transaction.remarks?.trim() || "No remarks",
+    ]),
+    theme: "grid",
+    styles: {
+      font: "helvetica",
+      fontSize: 8,
+      cellPadding: 3,
+      overflow: "linebreak",
+      textColor: [51, 65, 85],
+      lineColor: [226, 232, 240],
+      lineWidth: 0.1,
+    },
+    headStyles: {
+      fillColor: [5, 150, 105],
+      textColor: [255, 255, 255],
+      fontStyle: "bold",
+      halign: "left",
+    },
+    alternateRowStyles: {
+      fillColor: [248, 250, 252],
+    },
+    columnStyles: {
+      0: { cellWidth: 36 },
+      1: { cellWidth: 37 },
+      2: { cellWidth: 25 },
+      3: { cellWidth: 30, halign: "right" },
+      4: { cellWidth: 28 },
+      5: { cellWidth: 31 },
+      6: { cellWidth: 55 },
+    },
+    margin: {
+      top: 14,
+      left: 14,
+      right: 14,
+      bottom: 18,
+    },
+    didDrawPage: () => {
+      const pageNumber = doc.getNumberOfPages();
 
-    doc.save("paytrack-transaction-report.pdf");
-  };
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(100, 116, 139);
+
+      doc.text(
+        "PayTrack | Transaction Reconciliation Report",
+        14,
+        doc.internal.pageSize.getHeight() - 8,
+      );
+
+      doc.text(
+        `Page ${pageNumber}`,
+        doc.internal.pageSize.getWidth() - 14,
+        doc.internal.pageSize.getHeight() - 8,
+        { align: "right" },
+      );
+    },
+  });
+
+  doc.save("paytrack-transaction-report.pdf");
+};
 
   return (
     <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
