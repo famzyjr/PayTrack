@@ -36,8 +36,9 @@ const authenticateToken = (
 
   try {
     // 4. Verify that the token is valid and hasn't expired.
-    const decoded = jwt.verify(token, jwtSecret);
-
+   const decoded = jwt.verify(token, jwtSecret, {
+  algorithms: ["HS256"],
+});
     if (
       typeof decoded === "string" ||
       typeof decoded.sub !== "string"
