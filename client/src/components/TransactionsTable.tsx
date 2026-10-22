@@ -101,7 +101,6 @@ function TransactionsTable({
   onAddTransaction,
   onSaveRemarks,
   onUpdateStatus,
-  onToggleReconciliation,
   isAddModalOpen,
   onCloseAddModal,
     onUpdateTransaction
@@ -116,11 +115,7 @@ function TransactionsTable({
     useState<string | null>(null);
 
   // Track which transaction is currently being updated.
-  const [updatingReconciliation, setUpdatingReconciliation] =
-    useState<string | null>(null);
 
-  const [reconciliationError, setReconciliationError] =
-    useState<string | null>(null);
   const [editingTransactionId, setEditingTransactionId] =
     useState<string | null>(null);
 
@@ -160,26 +155,7 @@ function TransactionsTable({
   };
 
   // Save reconciliation status through the parent component/API.
-  const handleReconciliationChange = async (
-    id: string,
-    checked: boolean,
-  ) => {
-    setUpdatingReconciliation(id);
-    setReconciliationError(null);
-
-    try {
-      await onToggleReconciliation(id, checked);
-    } catch (error: unknown) {
-      setReconciliationError(
-        error instanceof Error
-          ? error.message
-          : "Unable to update reconciliation status.",
-      );
-    } finally {
-      setUpdatingReconciliation(null);
-    }
-  };
-
+ 
   const filteredTransactions = transactions.filter((transaction) => {
     const normalizedSearch = search.toLowerCase().trim();
 
