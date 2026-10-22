@@ -38,7 +38,7 @@ interface TransactionsTableProps {
     isReconciled: boolean,
   ) => Promise<void>;
 
-  onUpdateTransaction:(
+  onUpdateTransaction: (
     id: string,
     values: NewTransactionFormValues,
   ) => Promise<void>
@@ -101,9 +101,10 @@ function TransactionsTable({
   onAddTransaction,
   onSaveRemarks,
   onUpdateStatus,
+  onToggleReconciliation,
   isAddModalOpen,
   onCloseAddModal,
-    onUpdateTransaction
+  onUpdateTransaction
 
 }: TransactionsTableProps) {
   const [search, setSearch] = useState("");
@@ -115,7 +116,11 @@ function TransactionsTable({
     useState<string | null>(null);
 
   // Track which transaction is currently being updated.
+  const [updatingReconciliation, setUpdatingReconciliation] =
+    useState<string | null>(null);
 
+  const [reconciliationError, setReconciliationError] =
+    useState<string | null>(null);
   const [editingTransactionId, setEditingTransactionId] =
     useState<string | null>(null);
 
@@ -155,7 +160,26 @@ function TransactionsTable({
   };
 
   // Save reconciliation status through the parent component/API.
- 
+  const handleReconciliationChange = async (
+    id: string,
+    checked: boolean,
+  ) => {
+    setUpdatingReconciliation(id);
+    setReconciliationError(null);
+
+    try {
+      await onToggleReconciliation(id, checked);
+    } catch (error: unknown) {
+      setReconciliationError(
+        error instanceof Error
+          ? error.message
+          : "Unable to update reconciliation status.",
+      );
+    } finally {
+      setUpdatingReconciliation(null);
+    }
+  };
+
   const filteredTransactions = transactions.filter((transaction) => {
     const normalizedSearch = search.toLowerCase().trim();
 
@@ -447,8 +471,15 @@ function TransactionsTable({
         </div>
       </div>
 
-      
-    
+      {/* Reconciliation error */}
+      {reconciliationError && (
+        <p
+          role="alert"
+          className="border-b border-rose-100 bg-rose-50 px-5 py-3 text-sm text-rose-700"
+        >
+          {reconciliationError}
+        </p>
+      )}
 
       {/* Transactions table */}
       <div className="overflow-x-auto">
@@ -522,11 +553,44 @@ function TransactionsTable({
                   )}
                 </td>
 
+
+                {/* Reconciled column */}
+                <td className="px-5 py-4">
+                  <label className="inline-flex items-center gap-2 whitespace-nowrap text-sm text-slate-600">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(transaction.isReconciled)}
+                      disabled={
+                        updatingReconciliation === transaction.id
+                      }
+                      onChange={(event) =>
+                        handleReconciliationChange(
+                          transaction.id,
+                          event.target.checked,
+                        )
+                      }
+                      aria-label={`Mark ${transaction.sender} transaction as reconciled`}
+                      className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-600 disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+
+                    <span>
+                      {updatingReconciliation === transaction.id
+                        ? "Saving..."
+                        : transaction.isReconciled
+                          ? "Reconciled"
+                          : "Not reconciled"}
+                    </span>
+                  </label>
+                </td>
+
+                {/* Actions column */}
                 <td className="px-5 py-4">
                   <div className="flex items-center gap-4">
                     <button
                       type="button"
-                      onClick={() => setEditingTransactionId(transaction.id)}
+                      onClick={() =>
+                        setEditingTransactionId(transaction.id)
+                      }
                       className="inline-flex items-center gap-1.5 whitespace-nowrap text-sm font-semibold text-slate-700 transition hover:text-emerald-700"
                       aria-label={`Edit transaction from ${transaction.sender}`}
                     >
@@ -534,22 +598,19 @@ function TransactionsTable({
                       Edit
                     </button>
 
-
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setSelectedTransactionId(transaction.id)
+                      }
+                      className="inline-flex items-center gap-1.5 whitespace-nowrap text-sm font-semibold text-emerald-700 transition hover:text-emerald-800"
+                    >
+                      <Eye size={15} />
+                      View details
+                    </button>
                   </div>
                 </td>
 
-                <td className="px-5 py-4">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setSelectedTransactionId(transaction.id)
-                    }
-                    className="inline-flex items-center gap-1.5 whitespace-nowrap text-sm font-semibold text-emerald-700 transition hover:text-emerald-800"
-                  >
-                    <Eye size={15} />
-                    View details
-                  </button>
-                </td>
               </tr>
             ))}
 
@@ -591,14 +652,14 @@ function TransactionsTable({
           onUpdateStatus={onUpdateStatus}
         />
       )}
-       
-      {editingTransaction &&(
-      <EditTransactionModal
-        transaction={editingTransaction}
-      onClose={() => setEditingTransactionId(null)}
-        onUpdateTransaction={onUpdateTransaction}
-       />
-      )} 
+
+      {editingTransaction && (
+        <EditTransactionModal
+          transaction={editingTransaction}
+          onClose={() => setEditingTransactionId(null)}
+          onUpdateTransaction={onUpdateTransaction}
+        />
+      )}
     </section>
   );
 }
