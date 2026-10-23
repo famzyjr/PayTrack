@@ -1,6 +1,9 @@
 
 const API_URL = import.meta.env.VITE_API_URL;
 
+export const SESSION_EXPIRED_EVENT = "paytrack:session-expired";
+export const TOKEN_KEY = "paytrack_token";
+
 type ApiOptions = RequestInit & {
   token?: string;
 };
@@ -16,8 +19,7 @@ export async function apiRequest<T>(
   }
 
   const { token, headers, ...requestOptions } = options;
-console.log("VITE_API_URL:", import.meta.env.VITE_API_URL);
-console.log("Final request URL:", `${API_URL}${endpoint}`);
+
   const response = await fetch(`${API_URL}${endpoint}`, {
     ...requestOptions,
     headers: {
@@ -27,10 +29,23 @@ console.log("Final request URL:", `${API_URL}${endpoint}`);
     },
   });
 
-  const data = await response.json();
+  const data = await response.json().catch(() => null);
 
   if (!response.ok) {
-    throw new Error(data.message || "Something went wrong");
+    // Expire the session only when an authenticated request
+    // returns 401. Don't log out users for failed login attempts.
+    if (
+      response.status === 401 &&
+      token &&
+      token === sessionStorage.getItem(TOKEN_KEY)
+    ) {
+      window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
+    }
+
+    const message =
+      data?.message || "Something went wrong. Please try again.";
+
+    throw new Error(message);
   }
 
   return data as T;

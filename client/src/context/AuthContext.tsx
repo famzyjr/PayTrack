@@ -8,6 +8,10 @@ import {
 } from "react";
 
 import {
+  SESSION_EXPIRED_EVENT,
+  TOKEN_KEY,
+} from "../services/api";
+import {
   getCurrentUser,
   loginUser,
   registerUser,
@@ -29,7 +33,7 @@ const AuthContext = createContext<AuthContextType | undefined>(
   undefined,
 );
 
-const TOKEN_KEY = "paytrack_token";
+
 
 export function AuthProvider({
   children,
@@ -80,6 +84,26 @@ export function AuthProvider({
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+  const handleSessionExpired = () => {
+    sessionStorage.removeItem(TOKEN_KEY);
+    setToken(null);
+    setUser(null);
+  };
+
+  window.addEventListener(
+    SESSION_EXPIRED_EVENT,
+    handleSessionExpired
+  );
+
+  return () => {
+    window.removeEventListener(
+      SESSION_EXPIRED_EVENT,
+      handleSessionExpired
+    );
+  };
+}, []);
 
   // Log in an existing user.
   const login = async (data: LoginData): Promise<void> => {
