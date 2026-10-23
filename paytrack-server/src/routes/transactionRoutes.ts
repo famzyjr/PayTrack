@@ -39,18 +39,22 @@ const transactionDateSchema = z
   });
 
 // Schema used when creating a transaction.
-const transactionSchema = z.object({
-  sender: z.string().trim().min(1, "Sender name is required").max(100),
-  reference: z.string().trim().min(1, "Reference is required").max(100),
-  amount: z.coerce
-    .number()
-    .finite()
-    .positive("Amount must be greater than zero"),
- date: transactionDateSchema,
-  status: z.enum(["Confirmed", "Pending", "Needs review"]).default("Pending"),
-  remarks: z.string().trim().max(1000).default(""),
-  isReconciled: z.boolean().default(false),
-});
+const transactionSchema = z
+  .object({
+    sender: z.string().trim().min(1, "Sender name is required").max(100),
+    reference: z.string().trim().min(1, "Reference is required").max(100),
+    amount: z.coerce
+      .number()
+      .finite()
+      .positive("Amount must be greater than zero"),
+    date: transactionDateSchema,
+    status: z
+      .enum(["Confirmed", "Pending", "Needs review"])
+      .default("Pending"),
+    remarks: z.string().trim().max(1000).default(""),
+    isReconciled: z.boolean().default(false),
+  })
+  .strict();
 
 
 
@@ -58,19 +62,9 @@ const transactionSchema = z.object({
 // Schema used when updating only the fields provided.
 const updateTransactionSchema = z
   .object({
-    sender: z
-      .string()
-      .trim()
-      .min(1, "Sender name is required")
-      .max(100)
-      .optional(),
+    sender: z.string().trim().min(1, "Sender name is required").max(100).optional(),
 
-    reference: z
-      .string()
-      .trim()
-      .min(1, "Reference is required")
-      .max(100)
-      .optional(),
+    reference: z.string().trim().min(1, "Reference is required").max(100).optional(),
 
     amount: z.coerce
       .number()
@@ -88,10 +82,10 @@ const updateTransactionSchema = z
 
     isReconciled: z.boolean().optional(),
   })
+  .strict()
   .refine((data) => Object.keys(data).length > 0, {
     message: "Provide at least one field to update",
   });
-
 // GET /api/transactions
 // Retrieve only the logged-in user's transactions.
 router.get("/", async (req: Request, res: Response): Promise<void> => {
