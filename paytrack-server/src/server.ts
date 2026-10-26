@@ -5,6 +5,7 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
+import mongoose from "mongoose";
 
 import connectDB from "./config/db";
 import authRoutes from "./routes/authRoutes";
@@ -13,8 +14,7 @@ import transactionRoutes from "./routes/transactionRoutes";
 const app = express();
 const PORT = Number(process.env.PORT) || 5000;
 
-// Render runs behind a proxy. Trust one proxy hop in production
-// so rate limiting can use the original client IP.
+// Render runs behind a proxy. Trust one proxy hop in production.
 if (process.env.NODE_ENV === "production") {
   app.set("trust proxy", 1);
 }
@@ -34,8 +34,6 @@ const allowedOrigins = (
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Requests without an Origin header may come from tools
-      // or server-to-server clients. They still need authentication.
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
         return;
@@ -81,10 +79,22 @@ const authLimiter = rateLimit({
 app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/transactions", transactionRoutes);
 
+// Database-aware health check.
 app.get("/api/health", (_req, res) => {
+  const isDatabaseConnected = mongoose.connection.readyState === 1;
+
+  if (!isDatabaseConnected) {
+    res.status(503).json({
+      success: false,
+      message: "Service temporarily unavailable",
+    });
+    return;
+  }
+
   res.status(200).json({
     success: true,
-    message: "PayTrack API is running",
+    message: "PayTrack API is healthy",
+    database: "connected",
   });
 });
 
